@@ -76,13 +76,20 @@ def menu():
     conectado = verificar_conexion()
     status = "ONLINE (LOCAL DB)" if conectado else "OFFLINE (EMERGENCIA)"
     
-    # Carga inicial de datos
-    df_m = pd.read_csv(MASTER_FILE) if conectado else None
-    df_i = pd.read_csv(INV_FILE) if conectado else None
+    df_m, df_i = None, None
+    
+    if conectado:
+        try:
+            df_m = pd.read_csv(MASTER_FILE)
+            df_i = pd.read_csv(INV_FILE)
+        except Exception as e:
+            print(f"❌ ERROR CRÍTICO AL LEER CSV: {e}")
+            status = "ERROR DE DATOS"
+            conectado = False
 
     while True:
         limpiar_pantalla()
-        print(f"VTS v1.5 | STATUS: {status}")
+        print(f"VTS v1.5.1 | STATUS: {status}")
         print("==================================================")
         print("1. BÚSQUEDA RÁPIDA (STOCK & PRECIO)")
         print("2. REGISTRAR APORTE HOGAR")
@@ -91,17 +98,23 @@ def menu():
         print("5. SALIR")
         print("==================================================")
         
-        op = input("VTS_INPUT> ")
+        op = input("VTS_INPUT > ") # Asegúrate de que el cursor se quede aquí
         
-        if op == "1" and conectado:
-            busqueda_rapida(df_i, df_m)
-        elif op == "2" and conectado:
-            registrar_aporte_hogar(df_i)
-        elif op == "3" and conectado:
-            exportar_datos(df_i)
+        if op == "1":
+            if conectado: busqueda_rapida(df_i, df_m)
+            else: print("⚠️ Acción no disponible en modo OFFLINE"); input("ENTER...")
+        elif op == "2":
+            if conectado: registrar_aporte_hogar(df_i)
+            else: print("⚠️ Acción no disponible en modo OFFLINE"); input("ENTER...")
+        elif op == "3":
+            if conectado: exportar_datos(df_i)
+            else: print("⚠️ Acción no disponible en modo OFFLINE"); input("ENTER...")
         elif op == "5":
-            print("Cerrando Terminal VTS...")
+            print("Cerrando Terminal VTS... ¡Buen fin de semana!")
             break
+        else:
+            print("❌ Opción no válida.")
+            import time; time.sleep(1) # Pausa breve para ver el error
 
 if __name__ == "__main__":
     menu()
