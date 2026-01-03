@@ -1,10 +1,13 @@
 # Ignorar bases de datos y archivos de inventario
+data_s.csv
+data_v.csv
 *.csv
 *.xls
 *.xlsx
 *.json
 *.txt
 __pycache__/
+.env
 
 # Ignorar archivos de configuración de Google Drive
 token.json
