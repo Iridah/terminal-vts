@@ -9,10 +9,67 @@ INV_FILE = "data_v.csv"
 BACKUP_FILE = "sync_backup.txt"
 
 def limpiar_pantalla():
+    # Cambia el tamaño de la ventana (Columnas, Líneas) y el color (0A es fondo negro, letras verdes tipo Matrix)
+    if os.name == 'nt': # Solo para Windows
+        os.system('mode con: cols=100 lines=40')
+        os.system('color 0A') 
+    
     os.system('cls' if os.name == 'nt' else 'clear')
-    print("     🐮 VTS 🐮     ")
-    print("  [======|======> <======|======]")
-    print("-" * 40)
+
+def pantalla_inicio():
+    # 1. Limpieza absoluta de la terminal
+    os.system('cls' if os.name == 'nt' else 'clear')
+    
+    # 2. Configuración estética (Verde Fel para Windows)
+    if os.name == 'nt':
+        os.system('color 0A')
+        os.system('mode con: cols=85 lines=45') # Ventana optimizada para 66px
+
+    # 3. El Arte de 66 caracteres
+    illidan_66 = r"""
+%@%%%@@@@@@%%*###%%###%%###**##****##***************############%%
+%%%@%%#====#*+*###%%##%%#****##*+=+%%%###************#%########%%%
+%%%@#+==+%@@%%**###%%%%@%#**#%%%*+==#@@@@@%###********#*#####%%%%%
+%%%+=-=+@@@@@@*#####@@%#%*+#@@%#@*=-=*@@@@@%%##*##**********#%%%%#
+%%*==+*@@@@@@@*@%#%%@@@%%*=+@@%@@%+===*@@@@#%%%%%####************#
+%+=-=*@@@@@@@@*@@#%%%@@@#*+*@@@@@@*=--=@@@@%%%%%%%%%###*########%%
+#+==+@@@@@@@@@@@@@%%%#######%##%@@@+===*@@@%@@@@%@%%%%%%%%%%@%%%%%
+*+++*@@@@@@@@@@@@@%%########%###*@@*+==+@@@@@@@@@%%%%%@@@@@@%%%%%%
+*+++*@@@@@@@@@@%%@#+*%*#*#*#%##%###**+++#%@%@@@@@@@@%%%%@%%#%@%@@%
+**++*#@@@@@@@@@@*+*++#######+****%%**+**%@@%@@%%@@@@@@@@%%%#%@@@@@
+#****##@@@@@@@#+*+*#%##*****%++***%#+***%@@%#*#%@@@@@@@@@@%%#%@@@@
+%##****@@@@@@*+=+#%@%#*++++*#%++******#*%%##***++*#@@@%%%%%%%%%%%%
+@%##*#***#+*+++*###%%##########*++**#######*++++*+**%@@%%%%%%%%%%%
+@@@%##%#######%#%%%%@%%%*###%%@%###%%%%##****+++*+++**@@%%%%%#%%%%
+@@@%#%@@%%%*%%%%#%%%@@%%#####%@@%%%%%%%##%*##*++*+=++*#**#%%%#%%%@
+@@@%##@@%######@%%#%%@%@#**##%@@@@@%%%%%#*+**#=****##*##****##%@%@
+@@@##%@@@#%%%%%##@@##%@%#**##@@@@@@@@%%#%%%#*+*##**#####*****+%@@@
+@@%##@@%@@%@@@@%##%#%%%@@%@@@@@@@@%@@%%%%%#**%%#####%%#******++#@@
+@@%#%@@%%%@@@@@%%%%%#%%%%@@@@@@@@@%###+**#####%@@@@%%#*****##*+#**
+@@##%##@%%%@@@@%#%%@*#%%%%%%@@@@%%######**#*##%@@@@@%#*##**#**###*
+@@###**#%%%@@@@@%%@@@#*%%%##%@@@@@%%#####%%#*#%%@@@@@@%#%####%%*++
+@@*#**##%@@@@@@@@@%@%@%#%%%#%@@@@@%%%#%#####%%%@@@@@@@@@@@@@@@@#*+
+@*#*###%@@@@@@@@@@@%%%##%%@@%@@@%%%%##%%#*#%@%%@@@@@@@@@@@@@@%%%#+
+##*####%@%%@@@@@@@@@@@@@@@@@@@@@@@@@@@@%%@@@@@@@@@@@@@@@@@@@@%#***
+##***%#####@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%@@@@@@@@@@@@@@@%###
+#####*#%%@@@@@@@@@@@@@@@@@%%%@@@@@@@@@@@@@@@@@%%%@@@@@@@@@@@@@@@@%
+###*#%%@@@@@@@@@@@@@@@@@@@@%%%@@@@@@@@@@@@@@@%@%%@@@@@@@@@@@@@@@@@
+***%%%@@@@@@@@@@@@@@@@@%@%%@%%%%@@@@@@@@@@@@%%%@@@@@@@@@@@@@@@@@@@
+###%@@@@@@@@@@@@@@@@@@@@@@%%@@@@@@@@%@@%@@@@@@@@@@@@@@@@@@@@@@@@@@
+%@@@@@@@@@@@@@@@@@@%#%%@@@@#@@@@%@@@@#@@@@@@@@@@@%%#%@@@@@@@@@@@@@
+%%@@@@@@@@@@@@@@@@%##%%%%@%#%%@@%@@@%#%@@@@@@@%@%%%%%%%%@@@@@@@@@@
+#%@@@@@@@@@@@@@@@@%%%%%%%@#%%%%@@@@@%#%%@@@@@@%@%%%%@@@%@@@@@@@@@@
+#%@@@@@@@@@@@@@@@%%@@@@@%@%#%%%%@@@%%#%@%@@@@@@@@@@%%%%@@@@@@@@@@@
+#@@@@@@@@@@@@@%%%%@@@@@@@@*#%@@%%%%%%#@@@@@@@@@@%@@@@%#%%%@@@@@@@@
+#@@@@@@@@@@@%#%%%%%@@@@@@@*#%%@%%%%%%#@@@@%@@@@@@@@@@@%##%%@@@@@@@
+#@@@@@@@@@%%%%%%%%%%@@@@@@##%%%%%%%%%#@@@@%%%%@@%@@@@@@@%%%%@@@@@@
+    """
+    print(illidan_66)
+    print("\n" + " " * 12 + "¡NO ESTÁN PREPARADOS PARA EL STOCK!")
+    print("-" * 66)
+    
+    # Pausa de 7 segundos para contemplar el arte y cargar librerías
+    time.sleep(7)
 
 def verificar_conexion():
     return os.path.exists(MASTER_FILE) and os.path.exists(INV_FILE)
@@ -100,6 +157,11 @@ def registrar_aporte_hogar(df_i):
             
             # Guardado persistente en el CSV local (fuera de Git)
             df_i.to_csv(INV_FILE, index=False)
+
+            # NUEVO: Registro en el Kardex
+            nombre_prod = df_i.at[idx, 'Funcion']
+            registrar_log(sku, nombre_prod, cantidad)
+
             print("\n✅ BASE DE DATOS LOCAL ACTUALIZADA.")
         except ValueError:
             print("\n❌ ERROR: INGRESE UN NÚMERO VÁLIDO.")
@@ -131,6 +193,18 @@ def valorizar_inventario(df_i, df_m):
     total_activos = df_val['valor_neto_linea'].sum()
     total_hogar_unidades = df_i['Aporte Hogar'].sum()
     
+    # Supongamos que tu "Meta de Bodega" son $1.000.000 (ajustable)
+    meta = 1000000 
+    porcentaje = min((total_activos / meta) * 100, 100)
+    bloques = int(porcentaje / 5) # 20 bloques representan el 100%
+    
+    barra = "█" * bloques + "░" * (20 - bloques)
+    
+    print(f"💰 CAPITAL EN BODEGA")
+    print(f"[{barra}] {porcentaje:.1f}%")
+    print(f"VALOR NETO: ${total_activos:,.0f}")
+    print("-" * 40)
+
     print(f"RESUMEN DE CAPITAL:")
     print(f"--------------------------------------------------")
     print(f"VALOR TOTAL EN BODEGA (Costo):  ${total_activos:,.0f}")
@@ -191,9 +265,80 @@ def generar_lista_compras(df_i, df_m):
         
     input("\nENTER PARA VOLVER...")
 
+def registrar_log(sku, producto, cantidad, motivo="APORTE HOGAR"):
+    """Registra movimientos en un archivo de texto plano"""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_line = f"[{timestamp}] SKU: {sku} | CANT: {cantidad} | MOTIVO: {motivo} | PROD: {producto}\n"
+    
+    try:
+        with open("vts_movimientos.log", "a", encoding="utf-8") as f:
+            f.write(log_line)
+    except:
+        pass
+
+def ver_super_ganchos(df_m):
+    limpiar_pantalla()
+    print("🔥 PRODUCTOS 'SUPER GANCHO' (MÁXIMA ATRACCIÓN)")
+    print("="*60)
+    
+    # Filtramos usando tu lógica de Tablero
+    # Un "Super Gancho" es margen >= 28% y precio < competencia_min
+    ganchos = []
+    for _, r in df_m.iterrows():
+        margen = r.get('MARGEN REAL (%)', 0)
+        precio = r.get('PRECIO VENTA FINAL (CON IVA)', 0)
+        c_min = r.get('Minimo competencia', 0)
+        
+        if margen >= 0.2801 and (precio < c_min if c_min > 0 else False):
+            ganchos.append(r)
+            
+    if ganchos:
+        for g in ganchos:
+            print(f"⭐ {g['PRODUCTO'][:30]:30} | P. VENTA: ${g['PRECIO VENTA FINAL (CON IVA)']:,.0f}")
+        print("-" * 60)
+        print(f"Total: {len(ganchos)} oportunidades encontradas.")
+    else:
+        print("No hay productos con estatus 'SUPER GANCHO' actualmente.")
+    
+    input("\nENTER PARA VOLVER...")
+
+def calculadora_packs(df_m):
+    limpiar_pantalla()
+    print("📦 CREADOR DE COMBOS / PACKS VTS")
+    print("="*50)
+    skus = input("INGRESE SKUS SEPARADOS POR COMA (EJ: SKU1,SKU2): ").upper().split(',')
+    
+    total_normal = 0
+    productos_en_pack = []
+    
+    for s in skus:
+        s = s.strip()
+        prod = df_m[df_m['SKU'] == s]
+        if not prod.empty:
+            precio = prod.iloc[0]['PRECIO VENTA FINAL (CON IVA)']
+            nombre = prod.iloc[0]['PRODUCTO']
+            total_normal += precio
+            productos_en_pack.append(f"{nombre} (${precio:,.0f})")
+    
+    if productos_en_pack:
+        print("\nCONTENIDO DEL PACK:")
+        for p in productos_en_pack: print(f" - {p}")
+        print(f"\nPRECIO TOTAL NORMAL: ${total_normal:,.0f}")
+        
+        # Sugerencia de descuento
+        sugerido = total_normal * 0.90 # 10% de descuento
+        print(f"🔥 PRECIO COMBO SUGERIDO (-10%): ${sugerido:,.0f}")
+    else:
+        print("\n❌ NO SE ENCONTRARON LOS SKUS.")
+    
+    input("\nENTER PARA VOLVER...")
+
 # --- REFACTORIZACIÓN DEL MENÚ (EL CORAZÓN DEL PROBLEMA) ---
 
 def menu():
+    # 1. ARRANQUE DEL SISTEMA (Se ejecuta UNA vez)
+    pantalla_inicio() # <--- Aquí metemos al Illidan ASCII
+    
     conectado = verificar_conexion()
     status = "ONLINE (LOCAL DB)" if conectado else "OFFLINE (EMERGENCIA)"
     df_m, df_i = None, None
@@ -202,61 +347,53 @@ def menu():
         try:
             df_m = pd.read_csv(MASTER_FILE)
             df_i = pd.read_csv(INV_FILE)
-            # SUBSIDIO DE FORMATO EXCEL:
-            # Limpiamos las columnas críticas del Maestro
+            # Subsidio de formato Excel
             df_m['PRECIO VENTA FINAL (CON IVA)'] = df_m['PRECIO VENTA FINAL (CON IVA)'].apply(limpiar_precio)
             df_m['COSTO (SIN IVA)'] = df_m['COSTO (SIN IVA)'].apply(limpiar_precio)
             df_m['MARGEN REAL (%)'] = df_m['MARGEN REAL (%)'].apply(limpiar_precio)
+            
+            limpiar_pantalla()
             verificar_integridad_base(df_i, df_m)
-            input("\nPresione ENTER para iniciar sistema...") # Pausa opcional para alcanzar a leer el aviso
-
+            input("\nSISTEMA LISTO. Presione ENTER para entrar al panel...")
         except Exception as e:
-            status = f"ERROR DE DATOS: {e}"
+            status = f"ERROR CRÍTICO: {e}"
             conectado = False
 
+    # 2. BUCLE PRINCIPAL
     while True:
         limpiar_pantalla()
-        print(f"🐮 VTS v1.7.1 🐮 | STATUS: {status}")
-        print("==================================================")
-        print("1. 🔍 BÚSQUEDA RÁPIDA (STOCK & PRECIO)")
-        print("2. 🏠 REGISTRAR APORTE HOGAR")
-        print("3. 📑 EXPORTAR REPORTE (TXT)")
-        print("4. 💰 VALORIZACIÓN TOTAL (ACTIVOS)")
-        print("5. 🧠 TABLERO ESTRATÉGICO (EXCEL EQ)")
-        print("6. 🛒 LISTA DE COMPRAS (PEDIDO)")
-        print("7. 🚪 SALIR")
+        print(f"🐮 VTS v1.7.5 🐮 | STATUS: {status}")
+        print("="*50)
+        print("1. 🔍 BÚSQUEDA RÁPIDA       2. 🏠 REGISTRAR HOGAR")
+        print("3. 📑 EXPORTAR TXT          4. 💰 VALORIZACIÓN (KARDEX)")
+        print("5. 🧠 TABLERO ESTRATÉGICO   6. 🛒 LISTA DE COMPRAS")
+        print("7. 🔥 SUPERGANCHOS          8. 📦 CALCULAR PACKS") # Nueva!
+        print("9. 🚪 SALIR")
         print("==================================================")
         
         op = input("VTS_INPUT > ") 
-        
-        # Validación de salida inmediata
-        if op == "7":
+
+        # --- VALIDACIÓN DE SEGURIDAD ÚNICA ---
+        if op == "9": # SALIDA
             if conectado:
-                # Generamos un backup rápido en TXT antes de irnos
                 with open(BACKUP_FILE, "w") as f:
-                    f.write(f"RESPALDO DE SEGURIDAD - {datetime.now()}\n")
-                    f.write(df_i.to_string(index=False))
+                    f.write(f"RESPALDO - {datetime.now()}\n{df_i.to_string(index=False)}")
             print("Cerrando Terminal VTS 🐮... ¡Buen turno!")
             break
-        
-        # Validación de Modo Online
-        if not conectado and op in ["1", "2", "3", "4", "5", "6"]:
-            print("⚠️ Acción no disponible en modo OFFLINE"); input("ENTER...")
+
+        if not conectado:
+            print("⚠️ MODO OFFLINE: Solo se permite SALIR (9)"); time.sleep(1)
             continue
 
-        # Lógica de Ejecución (UN SOLO BLOQUE)
-        if op == "1":
-            busqueda_rapida(df_i, df_m)
-        elif op == "2":
-            registrar_aporte_hogar(df_i)
-        elif op == "3":
-            exportar_datos(df_i)
-        elif op == "4":
-            valorizar_inventario(df_i, df_m)
-        elif op == "5":
-            tablero_estrategico(df_m)
-        elif op == "6" and conectado:
-            generar_lista_compras(df_i, df_m)
+        # --- LÓGICA DE EJECUCIÓN (Solo si está conectado) ---
+        if op == "1": busqueda_rapida(df_i, df_m)
+        elif op == "2": registrar_aporte_hogar(df_i)
+        elif op == "3": exportar_datos(df_i)
+        elif op == "4": valorizar_inventario(df_i, df_m)
+        elif op == "5": tablero_estrategico(df_m)
+        elif op == "6": generar_lista_compras(df_i, df_m)
+        elif op == "7": ver_super_ganchos(df_m)
+        elif op == "8": calculadora_packs(df_m) # La nueva herramienta
         else:
             print("❌ Opción no válida.")
             time.sleep(1)
