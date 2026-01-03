@@ -30,7 +30,7 @@ def busqueda_rapida(df_i, df_m):
             print(f"PRODUCTO: {r['Funcion']}")
             print(f"SKU:      {r['SKU']}")
             print(f"STOCK DISP: {r['Subtotal']}")
-            print(f"PRECIO:   ${r['PRECIO VENTA FINAL (CON IVA)']:,.0f}")
+            print(f"VENTA (IVA): ${r['PRECIO VENTA FINAL (CON IVA)']:,.0f}")
             print("-" * 20)
     else:
         print("\n❌ NO SE ENCONTRARON COINCIDENCIAS.")
@@ -71,6 +71,35 @@ def exportar_datos(df_i):
         f.write(df_i.to_string(index=False))
     print(f"✅ ARCHIVO EXPORTADO: {filename}")
     input("ENTER...")
+
+def valorizar_inventario(df_i, df_m):
+    limpiar_pantalla()
+    print("💰 AUDITORÍA DE VALORIZACIÓN - VACADARI STORE")
+    print("="*50)
+    
+    # Cruzamos inventario con el costo del maestro
+    df_val = pd.merge(df_i, df_m[['SKU', 'COSTO (SIN IVA)']], on='SKU', how='left')
+    
+    # Cálculo: (Subtotal de unidades que quedan) * (Costo Neto de compra)
+    df_val['valor_neto_linea'] = df_val['Subtotal'] * df_val['COSTO (SIN IVA)']
+    
+    total_activos = df_val['valor_neto_linea'].sum()
+    total_hogar_unidades = df_i['Aporte Hogar'].sum()
+    
+    print(f"RESUMEN DE CAPITAL:")
+    print(f"--------------------------------------------------")
+    print(f"VALOR TOTAL EN BODEGA (Costo):  ${total_activos:,.0f}")
+    print(f"CONSUMO INTERNO (Aporte Hogar): {total_hogar_unidades:.0f} un.")
+    print(f"--------------------------------------------------")
+    
+    # Alerta de stock crítico (productos con 1 o 0 unidades)
+    criticos = df_val[df_val['Subtotal'] <= 1][['Funcion', 'Subtotal']]
+    if not criticos.empty:
+        print("\n⚠️ ALERTA DE REPOSICIÓN (Stock <= 1):")
+        for _, r in criticos.iterrows():
+            print(f" - {r['Funcion']}: {r['Subtotal']} un.")
+            
+    input("\nENTER PARA VOLVER AL MENÚ...")
 
 def menu():
     conectado = verificar_conexion()
