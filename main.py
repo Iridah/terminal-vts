@@ -337,7 +337,7 @@ def calculadora_packs(df_m):
 
 def menu():
     # 1. ARRANQUE DEL SISTEMA (Se ejecuta UNA vez)
-    pantalla_inicio() # <--- Aquí metemos al Illidan ASCII
+    pantalla_inicio() 
     
     conectado = verificar_conexion()
     status = "ONLINE (LOCAL DB)" if conectado else "OFFLINE (EMERGENCIA)"
@@ -347,11 +347,22 @@ def menu():
         try:
             df_m = pd.read_csv(MASTER_FILE)
             df_i = pd.read_csv(INV_FILE)
-            # Subsidio de formato Excel
-            df_m['PRECIO VENTA FINAL (CON IVA)'] = df_m['PRECIO VENTA FINAL (CON IVA)'].apply(limpiar_precio)
-            df_m['COSTO (SIN IVA)'] = df_m['COSTO (SIN IVA)'].apply(limpiar_precio)
-            df_m['MARGEN REAL (%)'] = df_m['MARGEN REAL (%)'].apply(limpiar_precio)
             
+            # PARCHE DE TOLERANCIA: Verifica columnas antes de limpiar
+            columnas_limpiar = [
+                'PRECIO VENTA FINAL (CON IVA)', 
+                'COSTO (SIN IVA)', 
+                'MARGEN REAL (%)'
+            ]
+            
+            for col in columnas_limpiar:
+                if col in df_m.columns:
+                    df_m[col] = df_m[col].apply(limpiar_precio)
+                else:
+                    df_m[col] = 0.0
+                    # Usamos un print simple para no ensuciar el splash
+                    print(f"⚠️  Columna '{col}' no encontrada en el maestro.")
+
             limpiar_pantalla()
             verificar_integridad_base(df_i, df_m)
             input("\nSISTEMA LISTO. Presione ENTER para entrar al panel...")
@@ -362,19 +373,24 @@ def menu():
     # 2. BUCLE PRINCIPAL
     while True:
         limpiar_pantalla()
-        print(f"🐮 VTS v1.7.5 🐮 | STATUS: {status}")
-        print("="*50)
-        print("1. 🔍 BÚSQUEDA RÁPIDA       2. 🏠 REGISTRAR HOGAR")
-        print("3. 📑 EXPORTAR TXT          4. 💰 VALORIZACIÓN (KARDEX)")
-        print("5. 🧠 TABLERO ESTRATÉGICO   6. 🛒 LISTA DE COMPRAS")
-        print("7. 🔥 SUPERGANCHOS          8. 📦 CALCULAR PACKS") # Nueva!
-        print("9. 🚪 SALIR")
-        print("==================================================")
+        
+        # --- LÓGICA DE ESCANEO RÁPIDO ---
+        productos_criticos = df_i[df_i['Subtotal'] <= 1].shape[0] if df_i is not None else 0
+        alerta_compras = "⚠️ REVISAR!" if productos_criticos > 0 else "OK"
+        
+        # --- ENCABEZADO ---
+        print(f"        🐮 VTS v1.7.6 🐮 | STATUS: {status}")
+        print("="*65)
+        print(" 1. 🔍 BÚSQUEDA RÁPIDA       2. 🏠 REGISTRAR HOGAR")
+        print(" 3. 📑 EXPORTAR TXT          4. 💰 VALORIZACIÓN (KARDEX)")
+        print(" 5. 🧠 TABLERO ESTRATÉGICO   6. 🛒 LISTA DE COMPRAS [" + alerta_compras + "]")
+        print(" 7. 🔥 SUPERGANCHOS          8. 📦 CALCULAR PACKS")
+        print(" 9. 🚪 SALIR")
+        print("="*65)
         
         op = input("VTS_INPUT > ") 
 
-        # --- VALIDACIÓN DE SEGURIDAD ÚNICA ---
-        if op == "9": # SALIDA
+        if op == "9":
             if conectado:
                 with open(BACKUP_FILE, "w") as f:
                     f.write(f"RESPALDO - {datetime.now()}\n{df_i.to_string(index=False)}")
@@ -385,7 +401,6 @@ def menu():
             print("⚠️ MODO OFFLINE: Solo se permite SALIR (9)"); time.sleep(1)
             continue
 
-        # --- LÓGICA DE EJECUCIÓN (Solo si está conectado) ---
         if op == "1": busqueda_rapida(df_i, df_m)
         elif op == "2": registrar_aporte_hogar(df_i)
         elif op == "3": exportar_datos(df_i)
@@ -393,7 +408,7 @@ def menu():
         elif op == "5": tablero_estrategico(df_m)
         elif op == "6": generar_lista_compras(df_i, df_m)
         elif op == "7": ver_super_ganchos(df_m)
-        elif op == "8": calculadora_packs(df_m) # La nueva herramienta
+        elif op == "8": calculadora_packs(df_m)
         else:
             print("❌ Opción no válida.")
             time.sleep(1)
