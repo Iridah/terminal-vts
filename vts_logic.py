@@ -1,4 +1,5 @@
 import pandas as pd
+from datetime import datetime
 from vts_utils import limpiar_pantalla, pausar, imprimir_separador
 
 def obtener_decision_ejecutiva(margen, precio, comp_min, comp_max):
@@ -37,27 +38,34 @@ def verificar_integridad_base(df_i, df_m):
     return False
 
 def busqueda_rapida(df_i, df_m):
-    limpiar_pantalla()
-    print("🔍 BÚSQUEDA RÁPIDA (TERMINAL VTS)")
-    query = input("INGRESE NOMBRE O SKU: ").upper()
+    while True:
+        limpiar_pantalla()
+        imprimir_separador()
+        print("🔍 BÚSQUEDA RÁPIDA (Presione 0 o ENTER vacío para volver)")
+        imprimir_separador()
+        termino = input("PRODUCTO / SKU / SECCION: ").upper()
+
+        if termino == "" or termino == "0":
+            break # Nos saca del bucle de búsqueda y vuelve al menú
     
     # Cruce de datos: Inventario + Precios del Maestro
-    df_res = pd.merge(df_i, df_m[['SKU', 'PRECIO VENTA FINAL (CON IVA)']], on='SKU', how='left')
-    
-    resultado = df_res[df_res['Funcion'].str.contains(query, na=False, case=False) | 
-                       df_res['SKU'].str.contains(query, na=False, case=False)]
+        df_res = pd.merge(df_i, df_m[['SKU', 'PRECIO VENTA FINAL (CON IVA)']], on='SKU', how='left')
+        
+        resultado = df_res[df_res['Funcion'].str.contains(termino, na=False, case=False) | 
+                           df_res['SKU'].str.contains(termino, na=False, case=False)]
 
-    if not resultado.empty:
-        print("\n" + "="*50)
-        for _, r in resultado.iterrows():
-            print(f"PRODUCTO: {r['Funcion']}")
-            print(f"SKU:      {r['SKU']}")
-            print(f"STOCK DISP: {r['Subtotal']}")
-            print(f"VENTA (IVA): ${r['PRECIO VENTA FINAL (CON IVA)']:,.0f}")
-            print("-" * 20)
-    else:
-        print("\n❌ NO SE ENCONTRARON COINCIDENCIAS.")
-    input("\nENTER PARA VOLVER...")
+        if not resultado.empty:
+            print("\n" + "="*50)
+            for _, r in resultado.iterrows():
+                print(f"PRODUCTO: {r['Funcion']}")
+                print(f"SKU:      {r['SKU']}")
+                print(f"STOCK DISP: {r['Subtotal']}")
+                print(f"VENTA (IVA): ${r['PRECIO VENTA FINAL (CON IVA)']:,.0f}")
+                print("-" * 20)
+        else:
+            print("\n❌ NO SE ENCONTRARON COINCIDENCIAS.")
+        
+        pausar()
 
 def exportar_datos(df_i):
     limpiar_pantalla()
@@ -73,6 +81,10 @@ def valorizar_inventario(df_i, df_m):
     limpiar_pantalla()
     print("💰 AUDITORÍA DE VALORIZACIÓN - VACADARI STORE")
     print("="*50)
+    confirmar = input("¿Ejecutar cálculo de valorización total? (S/N): ").upper()
+    
+    if confirmar != 'S':
+        return # Abortamos misión y volvemos al menú
     
     # Cruzamos inventario con el costo del maestro
     df_val = pd.merge(df_i, df_m[['SKU', 'COSTO (SIN IVA)']], on='SKU', how='left')
@@ -108,7 +120,7 @@ def valorizar_inventario(df_i, df_m):
         for _, r in criticos.iterrows():
             print(f" - {r['Funcion']}: {r['Subtotal']} un.")
             
-    input("\nENTER PARA VOLVER AL MENÚ...")
+    pausar()
 
 def tablero_estrategico(df_m):
     limpiar_pantalla()
@@ -124,7 +136,7 @@ def tablero_estrategico(df_m):
                                            r.get('Maximo competencia', 0))
         print(f"{r['PRODUCTO'][:20]:20} | {r.get('MARGEN REAL (%)', 0)*100:6.1f}% | {decision}")
     print("="*85)
-    input("\nENTER PARA VOLVER...")
+    pausar()
 
 def generar_lista_compras(df_i, df_m):
     limpiar_pantalla()
@@ -153,7 +165,7 @@ def generar_lista_compras(df_i, df_m):
     else:
         print("✅ TODO EN ORDEN: No hay productos con stock crítico.")
         
-    input("\nENTER PARA VOLVER...")
+    pausar()
 
 def ver_super_ganchos(df_m):
     limpiar_pantalla()
@@ -179,14 +191,20 @@ def ver_super_ganchos(df_m):
     else:
         print("No hay productos con estatus 'SUPER GANCHO' actualmente.")
     
-    input("\nENTER PARA VOLVER...")
+    pausar()
 
 def calculadora_packs(df_m):
     limpiar_pantalla()
+    imprimir_separador()
     print("📦 CREADOR DE COMBOS / PACKS VTS")
-    print("="*50)
-    skus = input("INGRESE SKUS SEPARADOS POR COMA (EJ: SKU1,SKU2): ").upper().split(',')
+    imprimir_separador()
+    entrada = input("INGRESE SKUS SEPARADOS POR COMA (o 0 para salir): ").upper()
     
+    # SALIDA DE EMERGENCIA
+    if entrada == "0" or entrada == "":
+        return
+    
+    skus = entrada.split(',')
     total_normal = 0
     productos_en_pack = []
     
@@ -203,11 +221,9 @@ def calculadora_packs(df_m):
         print("\nCONTENIDO DEL PACK:")
         for p in productos_en_pack: print(f" - {p}")
         print(f"\nPRECIO TOTAL NORMAL: ${total_normal:,.0f}")
-        
-        # Sugerencia de descuento
-        sugerido = total_normal * 0.90 # 10% de descuento
+        sugerido = total_normal * 0.90
         print(f"🔥 PRECIO COMBO SUGERIDO (-10%): ${sugerido:,.0f}")
     else:
         print("\n❌ NO SE ENCONTRARON LOS SKUS.")
     
-    input("\nENTER PARA VOLVER...")
+    pausar()

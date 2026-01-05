@@ -21,8 +21,14 @@ def registrar_log(sku, producto, cantidad, motivo="APORTE HOGAR"):
 
 def registrar_aporte_hogar(df_i):
     limpiar_pantalla()
-    print("🏠 REGISTRO DE APORTE HOGAR")
+    print("🏠 REGISTRO DE APORTE HOGAR (0 para cancelar)")
     sku = input("INGRESE SKU DEL PRODUCTO: ").upper()
+    
+    # SALIDA DE EMERGENCIA
+    if sku == "0" or sku == "":
+        print("Operación cancelada.")
+        time.sleep(1)
+        return
     
     if sku in df_i['SKU'].values:
         try:

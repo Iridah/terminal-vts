@@ -19,3 +19,10 @@ def formatear_moneda(valor):
         return f"${int(valor):,}".replace(",", ".")
     except:
         return "$0"
+    
+def entrada_segura(prompt):
+    """Captura entrada y detecta si el usuario quiere cancelar"""
+    valor = input(f"{prompt} (o 0 para cancelar): ").strip()
+    if valor == "0" or valor == "":
+        return None  # Señal de que el usuario abortó
+    return valor
