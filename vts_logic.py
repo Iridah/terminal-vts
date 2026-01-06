@@ -1,12 +1,22 @@
+import sqlite3
 import pandas as pd
 from datetime import datetime
 from vts_utils import limpiar_pantalla, pausar, imprimir_separador
 
+DB_NAME = "vts_mardum.db"
+
+def obtener_conexion():
+    """Utilidad interna para conectar a la DB"""
+    return sqlite3.connect(DB_NAME)
+
+# --- FUNCIONES DE APOYO ---
+
 def obtener_decision_ejecutiva(margen, precio, comp_min, comp_max):
+    """Lógica pura: Mantiene la inteligencia de negocio original"""
     try:
         m, p = float(margen), float(precio)
-        s3 = float(comp_min) if pd.notnull(comp_min) and comp_min != 0 else p
-        u3 = float(comp_max) if pd.notnull(comp_max) and comp_max != 0 else p
+        s3 = float(comp_min) if comp_min and comp_min != 0 else p
+        u3 = float(comp_max) if comp_max and comp_max != 0 else p
     except: return "Faltan Datos"
 
     if m >= 0.2801:
@@ -18,212 +28,154 @@ def obtener_decision_ejecutiva(margen, precio, comp_min, comp_max):
     return "Decisión Estándar"
 
 def limpiar_precio(valor):
+    """Mantenemos esta utilidad por si Pandas la necesita en imports futuros"""
     if pd.isnull(valor): return 0.0
     if isinstance(valor, (int, float)): return float(valor)
     limpio = str(valor).replace('$', '').replace('.', '').replace(',', '.').strip()
-    try:
-        return float(limpio)
-    except:
-        return 0.0
+    try: return float(limpio)
+    except: return 0.0
 
-def verificar_integridad_base(df_i, df_m):
-    # Buscamos SKUs que están en el maestro pero no en el inventario local
-    faltantes = df_m[~df_m['SKU'].isin(df_i['SKU'])]
-    if not faltantes.empty:
-        print(f"\n⚠️  AVISO DE INTEGRIDAD: Hay {len(faltantes)} productos nuevos en el Maestro")
-        print("   que no han sido inicializados en el Inventario local.")
-        print(f"   Ejemplo: {faltantes.iloc[0]['PRODUCTO']} ({faltantes.iloc[0]['SKU']})")
-        print("-" * 50)
-        return True
+# --- FUNCIONES DEL MENÚ (CABLEADAS A SQL) ---
+
+def verificar_integridad_base(df_i_ignorado=None, df_m_ignorado=None):
+    """Busca SKUs en maestro que no existen en inventario usando un EXCEPT de SQL"""
+    with obtener_conexion() as conn:
+        cursor = conn.cursor()
+        query = "SELECT sku FROM maestro EXCEPT SELECT sku FROM inventario"
+        cursor.execute(query)
+        faltantes = cursor.fetchall()
+        if faltantes:
+            print(f"\n⚠️ AVISO DE INTEGRIDAD: {len(faltantes)} SKUs nuevos sin inicializar.")
+            return True
     return False
 
-def busqueda_rapida(df_i, df_m):
+def busqueda_rapida(df_i=None, df_m=None):
     while True:
         limpiar_pantalla()
         imprimir_separador()
-        print("🔍 BÚSQUEDA RÁPIDA (Presione 0 o ENTER vacío para volver)")
+        print("🔍 BÚSQUEDA RÁPIDA SQL (0 para volver)")
         imprimir_separador()
-        termino = input("PRODUCTO / SKU / SECCION: ").upper()
+        termino = input("PRODUCTO / SKU: ").strip().upper()
+        if termino in ["", "0"]: break
 
-        if termino == "" or termino == "0":
-            break # Nos saca del bucle de búsqueda y vuelve al menú
-    
-    # Cruce de datos: Inventario + Precios del Maestro
-        df_res = pd.merge(df_i, df_m[['SKU', 'PRECIO VENTA FINAL (CON IVA)']], on='SKU', how='left')
-        
-        resultado = df_res[df_res['Funcion'].str.contains(termino, na=False, case=False) | 
-                           df_res['SKU'].str.contains(termino, na=False, case=False)]
-
-        if not resultado.empty:
-            print("\n" + "="*50)
-            for _, r in resultado.iterrows():
-                print(f"PRODUCTO: {r['Funcion']}")
-                print(f"SKU:      {r['SKU']}")
-                print(f"STOCK DISP: {r['Subtotal']}")
-                print(f"VENTA (IVA): ${r['PRECIO VENTA FINAL (CON IVA)']:,.0f}")
-                print("-" * 20)
-        else:
-            print("\n❌ NO SE ENCONTRARON COINCIDENCIAS.")
-        
+        with obtener_conexion() as conn:
+            cursor = conn.cursor()
+            query = """
+                SELECT i.sku, i.funcion, i.subtotal, m.precio_venta 
+                FROM inventario i
+                LEFT JOIN maestro m ON i.sku = m.sku
+                WHERE i.funcion LIKE ? OR i.sku LIKE ?
+            """
+            cursor.execute(query, (f'%{termino}%', f'%{termino}%'))
+            res = cursor.fetchall()
+            if res:
+                print(f"\n{'SKU':12} | {'PRODUCTO':30} | {'STOCK':6} | {'PRECIO'}")
+                print("-" * 65)
+                for r in res:
+                    print(f"{r[0]:12} | {r[1][:30]:30} | {r[2]:6} | ${r[3]:,.0f}")
+            else: print("\n❌ SIN COINCIDENCIAS.")
         pausar()
 
-def exportar_datos(df_i):
+def exportar_datos(df_i_ignorado=None):
     limpiar_pantalla()
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    filename = f"VTS_EXPORT_{timestamp}.txt"
-    with open(filename, "w") as f:
-        f.write(f"VTS SYSTEM EXPORT - {timestamp}\n\n")
-        f.write(df_i.to_string(index=False))
-    print(f"✅ ARCHIVO EXPORTADO: {filename}")
-    input("ENTER...")
-
-def valorizar_inventario(df_i, df_m):
-    limpiar_pantalla()
-    print("💰 AUDITORÍA DE VALORIZACIÓN - VACADARI STORE")
-    print("="*50)
-    confirmar = input("¿Ejecutar cálculo de valorización total? (S/N): ").upper()
-    
-    if confirmar != 'S':
-        return # Abortamos misión y volvemos al menú
-    
-    # Cruzamos inventario con el costo del maestro
-    df_val = pd.merge(df_i, df_m[['SKU', 'COSTO (SIN IVA)']], on='SKU', how='left')
-    
-    # Cálculo: (Subtotal de unidades que quedan) * (Costo Neto de compra)
-    df_val['valor_neto_linea'] = df_val['Subtotal'] * df_val['COSTO (SIN IVA)']
-    
-    total_activos = df_val['valor_neto_linea'].sum()
-    total_hogar_unidades = df_i['Aporte Hogar'].sum()
-    
-    # Supongamos que tu "Meta de Bodega" son $1.000.000 (ajustable)
-    meta = 1000000 
-    porcentaje = min((total_activos / meta) * 100, 100)
-    bloques = int(porcentaje / 5) # 20 bloques representan el 100%
-    
-    barra = "█" * bloques + "░" * (20 - bloques)
-    
-    print(f"💰 CAPITAL EN BODEGA")
-    print(f"[{barra}] {porcentaje:.1f}%")
-    print(f"VALOR NETO: ${total_activos:,.0f}")
-    print("-" * 40)
-
-    print(f"RESUMEN DE CAPITAL:")
-    print(f"--------------------------------------------------")
-    print(f"VALOR TOTAL EN BODEGA (Costo):  ${total_activos:,.0f}")
-    print(f"CONSUMO INTERNO (Aporte Hogar): {total_hogar_unidades:.0f} un.")
-    print(f"--------------------------------------------------")
-    
-    # Alerta de stock crítico (productos con 1 o 0 unidades)
-    criticos = df_val[df_val['Subtotal'] <= 1][['Funcion', 'Subtotal']]
-    if not criticos.empty:
-        print("\n⚠️ ALERTA DE REPOSICIÓN (Stock <= 1):")
-        for _, r in criticos.iterrows():
-            print(f" - {r['Funcion']}: {r['Subtotal']} un.")
-            
+    filename = f"VTS_SQL_EXPORT_{timestamp}.txt"
+    with obtener_conexion() as conn:
+        df = pd.read_sql_query("SELECT * FROM inventario", conn)
+        df.to_csv(filename, sep='\t', index=False)
+    print(f"✅ EXPORTADO: {filename}")
     pausar()
 
-def tablero_estrategico(df_m):
+def valorizar_inventario(df_i=None, df_m=None):
     limpiar_pantalla()
-    print("🧠 TABLERO DE DECISIÓN EJECUTIVA (VTS v1.7)")
-    print("="*85)
-    print(f"{'PRODUCTO':20} | {'MARGEN':7} | {'ESTRATEGIA RECOMENDADA'}")
-    print("-" * 85)
-    df_m_sorted = df_m.sort_values(by='MARGEN REAL (%)', ascending=False)
-    for _, r in df_m_sorted.iterrows():
-        decision = obtener_decision_ejecutiva(r.get('MARGEN REAL (%)', 0), 
-                                           r.get('PRECIO VENTA FINAL (CON IVA)', 0),
-                                           r.get('Minimo competencia', 0), 
-                                           r.get('Maximo competencia', 0))
-        print(f"{r['PRODUCTO'][:20]:20} | {r.get('MARGEN REAL (%)', 0)*100:6.1f}% | {decision}")
-    print("="*85)
-    pausar()
-
-def generar_lista_compras(df_i, df_m):
-    limpiar_pantalla()
-    print("🛒 SUGERENCIA DE REPOSICIÓN (SMART RESTOCK)")
-    print("="*60)
-    
-    # Unimos para saber qué estamos comprando
-    df_repo = pd.merge(df_i, df_m[['SKU', 'COSTO (SIN IVA)']], on='SKU', how='left')
-    
-    # Definimos el criterio de "Falta": Stock <= 1 (ajustable)
-    faltantes = df_repo[df_repo['Subtotal'] <= 1].copy()
-    
-    if not faltantes.empty:
-        print(f"{'PRODUCTO':25} | {'STOCK':7} | {'COSTO REF'}")
-        print("-" * 60)
-        
-        total_estimado = 0
-        for _, r in faltantes.iterrows():
-            costo = r['COSTO (SIN IVA)'] if pd.notnull(r['COSTO (SIN IVA)']) else 0
-            print(f"{r['Funcion'][:25]:25} | {r['Subtotal']:7.0f} | ${costo:,.0f}")
-            total_estimado += costo * 5  # Sugerimos comprar al menos 5 para stock
-            
-        print("-" * 60)
-        print(f"💰 INVERSIÓN ESTIMADA (Base 5 un. c/u): ${total_estimado:,.0f}")
-        print("💡 Nota: El costo es referencial basado en última compra.")
-    else:
-        print("✅ TODO EN ORDEN: No hay productos con stock crítico.")
-        
-    pausar()
-
-def ver_super_ganchos(df_m):
-    limpiar_pantalla()
-    print("🔥 PRODUCTOS 'SUPER GANCHO' (MÁXIMA ATRACCIÓN)")
-    print("="*60)
-    
-    # Filtramos usando tu lógica de Tablero
-    # Un "Super Gancho" es margen >= 28% y precio < competencia_min
-    ganchos = []
-    for _, r in df_m.iterrows():
-        margen = r.get('MARGEN REAL (%)', 0)
-        precio = r.get('PRECIO VENTA FINAL (CON IVA)', 0)
-        c_min = r.get('Minimo competencia', 0)
-        
-        if margen >= 0.2801 and (precio < c_min if c_min > 0 else False):
-            ganchos.append(r)
-            
-    if ganchos:
-        for g in ganchos:
-            print(f"⭐ {g['PRODUCTO'][:30]:30} | P. VENTA: ${g['PRECIO VENTA FINAL (CON IVA)']:,.0f}")
-        print("-" * 60)
-        print(f"Total: {len(ganchos)} oportunidades encontradas.")
-    else:
-        print("No hay productos con estatus 'SUPER GANCHO' actualmente.")
-    
-    pausar()
-
-def calculadora_packs(df_m):
-    limpiar_pantalla()
+    print("💰 AUDITORÍA DE VALORIZACIÓN SQL")
     imprimir_separador()
-    print("📦 CREADOR DE COMBOS / PACKS VTS")
+    with obtener_conexion() as conn:
+        cursor = conn.cursor()
+        query = """
+            SELECT SUM(i.subtotal * m.costo_neto), SUM(i.aporte_hogar)
+            FROM inventario i
+            JOIN maestro m ON i.sku = m.sku
+        """
+        cursor.execute(query)
+        activos, hogar = cursor.fetchone()
+        activos = activos if activos else 0
+        print(f"VALOR TOTAL BODEGA: ${activos:,.0f}")
+        print(f"CONSUMO INTERNO:   {hogar if hogar else 0} un.")
+        
+        # Alerta de stock crítico
+        cursor.execute("SELECT funcion, subtotal FROM inventario WHERE subtotal <= 1")
+        criticos = cursor.fetchall()
+        if criticos:
+            print("\n⚠️ CRÍTICOS:")
+            for c in criticos: print(f" - {c[0]}: {c[1]} un.")
+    pausar()
+
+def tablero_estrategico(df_m=None):
+    limpiar_pantalla()
+    print(f"{'PRODUCTO':20} | {'MARGEN':7} | {'ESTRATEGIA'}")
     imprimir_separador()
-    entrada = input("INGRESE SKUS SEPARADOS POR COMA (o 0 para salir): ").upper()
-    
-    # SALIDA DE EMERGENCIA
-    if entrada == "0" or entrada == "":
-        return
-    
-    skus = entrada.split(',')
-    total_normal = 0
-    productos_en_pack = []
-    
-    for s in skus:
-        s = s.strip()
-        prod = df_m[df_m['SKU'] == s]
-        if not prod.empty:
-            precio = prod.iloc[0]['PRECIO VENTA FINAL (CON IVA)']
-            nombre = prod.iloc[0]['PRODUCTO']
-            total_normal += precio
-            productos_en_pack.append(f"{nombre} (${precio:,.0f})")
-    
-    if productos_en_pack:
-        print("\nCONTENIDO DEL PACK:")
-        for p in productos_en_pack: print(f" - {p}")
-        print(f"\nPRECIO TOTAL NORMAL: ${total_normal:,.0f}")
-        sugerido = total_normal * 0.90
-        print(f"🔥 PRECIO COMBO SUGERIDO (-10%): ${sugerido:,.0f}")
-    else:
-        print("\n❌ NO SE ENCONTRARON LOS SKUS.")
-    
+    with obtener_conexion() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT producto, margen, precio_venta, comp_min, comp_max FROM maestro ORDER BY margen DESC")
+        for r in cursor.fetchall():
+            decision = obtener_decision_ejecutiva(r[1], r[2], r[3], r[4])
+            print(f"{r[0][:20]:20} | {r[1]*100:6.1f}% | {decision}")
+    pausar()
+
+def generar_lista_compras(df_i=None, df_m=None):
+    limpiar_pantalla()
+    print("🛒 SUGERENCIA DE REPOSICIÓN SQL")
+    imprimir_separador()
+    with obtener_conexion() as conn:
+        cursor = conn.cursor()
+        query = """
+            SELECT i.funcion, i.subtotal, m.costo_neto 
+            FROM inventario i JOIN maestro m ON i.sku = m.sku
+            WHERE i.subtotal <= 1
+        """
+        cursor.execute(query)
+        faltantes = cursor.fetchall()
+        if faltantes:
+            total = 0
+            for f in faltantes:
+                print(f"{f[0][:25]:25} | Stock: {f[1]} | Costo: ${f[2]:,.0f}")
+                total += (f[2] * 5)
+            print(f"\n💰 INVERSIÓN EST. (Base 5 un.): ${total:,.0f}")
+        else: print("✅ TODO EN ORDEN.")
+    pausar()
+
+def ver_super_ganchos(df_m=None):
+    limpiar_pantalla()
+    print("🔥 SUPER GANCHOS DETECTADOS")
+    imprimir_separador()
+    with obtener_conexion() as conn:
+        cursor = conn.cursor()
+        # Lógica SQL: Margen > 28% y precio < competencia_min
+        query = "SELECT producto, precio_venta FROM maestro WHERE margen >= 0.2801 AND precio_venta < comp_min"
+        cursor.execute(query)
+        ganchos = cursor.fetchall()
+        if ganchos:
+            for g in ganchos: print(f"⭐ {g[0][:30]:30} | ${g[1]:,.0f}")
+        else: print("No hay ganchos actualmente.")
+    pausar()
+
+def calculadora_packs(df_m=None):
+    limpiar_pantalla()
+    print("📦 CREADOR DE COMBOS SQL")
+    imprimir_separador()
+    entrada = input("SKUS (Coma): ").upper()
+    if entrada in ["", "0"]: return
+    skus = [s.strip() for s in entrada.split(',')]
+    total = 0
+    with obtener_conexion() as conn:
+        cursor = conn.cursor()
+        for s in skus:
+            cursor.execute("SELECT producto, precio_venta FROM maestro WHERE sku = ?", (s,))
+            res = cursor.fetchone()
+            if res:
+                print(f" - {res[0]}: ${res[1]:,.0f}")
+                total += res[1]
+        if total > 0:
+            print(f"\nTOTAL: ${total:,.0f} | COMBO (-10%): ${(total*0.9):,.0f}")
     pausar()

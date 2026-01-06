@@ -6,6 +6,8 @@ data_v.csv
 *.xlsx
 *.json
 *.txt
+*.db
+*.db.bak
 __pycache__/
 .env
 

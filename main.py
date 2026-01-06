@@ -1,3 +1,4 @@
+import shutil
 import pandas as pd
 import os
 from datetime import datetime
@@ -5,13 +6,13 @@ import time
 
 # IMPORTACIONES DESDE TUS MÓDULOS (La clave del éxito)
 from vts_utils import limpiar_pantalla, pausar, imprimir_separador
-from vts_logic import * 
+from vts_logic import *
 from database_manager import (
     verificar_conexion, 
     registrar_log, 
     registrar_aporte_hogar, 
-    MASTER_FILE, 
-    INV_FILE
+    inicializar_db,
+    obtener_conexion  # <--- ESTE ES EL CABLE QUE NECESITABAS
 )
 
 # CONFIGURACIÓN DE SEGURIDAD
@@ -74,46 +75,30 @@ def pantalla_inicio():
 
 def menu():
     # 1. ARRANQUE DEL SISTEMA (Se ejecuta UNA vez)
-    pantalla_inicio() 
+    pantalla_inicio()
+    inicializar_db()
     
     conectado = verificar_conexion()
-    status = "ONLINE (LOCAL DB)" if conectado else "OFFLINE (EMERGENCIA)"
-    df_m, df_i = None, None
+    status = "ONLINE (LOCAL SQL)" if conectado else "OFFLINE (EMERGENCIA)"
     
     if conectado:
-        try:
-            df_m = pd.read_csv(MASTER_FILE)
-            df_i = pd.read_csv(INV_FILE)
-            
-            # PARCHE DE TOLERANCIA: Verifica columnas antes de limpiar
-            columnas_limpiar = [
-                'PRECIO VENTA FINAL (CON IVA)', 
-                'COSTO (SIN IVA)', 
-                'MARGEN REAL (%)'
-            ]
-            
-            for col in columnas_limpiar:
-                if col in df_m.columns:
-                    df_m[col] = df_m[col].apply(limpiar_precio)
-                else:
-                    df_m[col] = 0.0
-                    # Usamos un print simple para no ensuciar el splash
-                    print(f"⚠️  Columna '{col}' no encontrada en el maestro.")
-
-            limpiar_pantalla()
-            verificar_integridad_base(df_i, df_m)
-            input("\nSISTEMA LISTO. Presione ENTER para entrar al panel...")
-        except Exception as e:
-            status = f"ERROR CRÍTICO: {e}"
-            conectado = False
+        limpiar_pantalla()
+        # Llamamos a la integridad sin pasarle DFs, que consulte la DB
+        verificar_integridad_base() 
+        input("\nSISTEMA SQL LISTO. Presione ENTER para entrar al panel...")
 
     # 2. BUCLE PRINCIPAL
     while True:
         limpiar_pantalla()
         
-        # --- LÓGICA DE ESCANEO RÁPIDO ---
-        productos_criticos = df_i[df_i['Subtotal'] <= 1].shape[0] if df_i is not None else 0
-        alerta_compras = "⚠️ REVISAR!" if productos_criticos > 0 else "OK"
+        # --- LÓGICA DE ALERTA (Ahora vía SQL rápido) ---
+        alerta_compras = "OK"
+        if conectado:
+            with obtener_conexion() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM inventario WHERE subtotal <= 1")
+                criticos = cursor.fetchone()[0]
+                if criticos > 0: alerta_compras = f"⚠️ {criticos} REVISAR!"
         
         # --- ENCABEZADO ---
         print(f"        🐮 VTS v1.7.6 🐮 | STATUS: {status}")
@@ -129,8 +114,12 @@ def menu():
 
         if op == "9":
             if conectado:
-                with open(BACKUP_FILE, "w") as f:
-                    f.write(f"RESPALDO - {datetime.now()}\n{df_i.to_string(index=False)}")
+                try:
+                    shutil.copy2("vts_mardum.db", "vts_mardum.db.bak")
+                    print("💾 Respaldo local creado (vts_mardum.db.bak)")
+                except Exception as e:
+                    print(f"⚠️ No se pudo crear el respaldo: {e}")
+            
             print("Cerrando Terminal VTS 🐮... ¡Buen turno!")
             break
 
@@ -138,17 +127,17 @@ def menu():
             print("⚠️ MODO OFFLINE: Solo se permite SALIR (9)"); time.sleep(1)
             continue
 
-        if op == "1": busqueda_rapida(df_i, df_m)
-        elif op == "2": registrar_aporte_hogar(df_i)
-        elif op == "3": exportar_datos(df_i)
-        elif op == "4": valorizar_inventario(df_i, df_m)
-        elif op == "5": tablero_estrategico(df_m)
-        elif op == "6": generar_lista_compras(df_i, df_m)
-        elif op == "7": ver_super_ganchos(df_m)
-        elif op == "8": calculadora_packs(df_m)
+        # LLAMADAS SIMPLIFICADAS (Pure SQL)
+        if op == "1": busqueda_rapida()
+        elif op == "2": registrar_aporte_hogar() 
+        elif op == "3": exportar_datos()
+        elif op == "4": valorizar_inventario()
+        elif op == "5": tablero_estrategico()
+        elif op == "6": generar_lista_compras()
+        elif op == "7": ver_super_ganchos()
+        elif op == "8": calculadora_packs()
         else:
-            print("❌ Opción no válida.")
-            time.sleep(1)
+            print("❌ Opción no válida."); time.sleep(1)
 
 if __name__ == "__main__":
     menu()

@@ -1,15 +1,70 @@
+import sqlite3
 import pandas as pd
 import os
 from datetime import datetime
-from vts_utils import limpiar_pantalla
+from vts_utils import limpiar_pantalla, pausar
 
-# Configuraciones
-MASTER_FILE = "data_s.csv"
-INV_FILE = "data_v.csv"
+DB_NAME = "vts_mardum.db"
+
+def inicializar_db():
+    """Asegura la existencia de las tablas (Punto Ciego 1)"""
+    with obtener_conexion() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''CREATE TABLE IF NOT EXISTS maestro 
+            (sku TEXT PRIMARY KEY, producto TEXT, costo_neto REAL, precio_venta REAL, 
+             margen REAL, comp_min REAL, comp_max REAL)''')
+        cursor.execute('''CREATE TABLE IF NOT EXISTS inventario 
+            (sku TEXT PRIMARY KEY, funcion TEXT, stock_actual INTEGER, 
+             aporte_hogar INTEGER, subtotal INTEGER)''')
+        conn.commit()
+
+def registrar_aporte_hogar(df_ignorado=None):
+    """Actualiza el consumo interno usando SQL puro."""
+    limpiar_pantalla()
+    print("🏠 REGISTRO DE APORTE HOGAR (SQL ENGINE)")
+    sku = input("INGRESE SKU (o 0 para cancelar): ").upper()
+    
+    if sku == "0" or sku == "": 
+        return
+
+    try:
+        with obtener_conexion() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT funcion, aporte_hogar, stock_actual FROM inventario WHERE sku = ?", (sku,))
+            fila = cursor.fetchone()
+
+            if fila:
+                nombre, hogar_actual, stock = fila
+                try:
+                    cantidad = int(input(f"CANTIDAD PARA {nombre}: "))
+                    nuevo_hogar = hogar_actual + cantidad
+                    nuevo_subtotal = stock - nuevo_hogar
+
+                    cursor.execute('''UPDATE inventario SET aporte_hogar = ?, subtotal = ? WHERE sku = ?''', 
+                                 (nuevo_hogar, nuevo_subtotal, sku))
+                    conn.commit()
+                    
+                    registrar_log(sku, nombre, cantidad)
+                    print(f"\n✅ SQL UPDATE EXITOSO: {nombre}")
+                    print(f"📊 NUEVO SUBTOTAL: {nuevo_subtotal}")
+                except ValueError:
+                    print("❌ ERROR: Ingrese un número entero.")
+            else:
+                print("❌ SKU no encontrado en la base de datos.")
+    except Exception as e:
+        print(f"❌ ERROR DE CONEXIÓN: {e}")
+    
+    pausar()
+
+def obtener_conexion():
+    """Conexión robusta al motor SQL"""
+    return sqlite3.connect(DB_NAME)
 
 def verificar_conexion():
-    return os.path.exists(MASTER_FILE) and os.path.exists(INV_FILE)
+    """El nuevo sensor de estado para el main.py"""
+    return os.path.exists(DB_NAME)
 
+# Mantenemos registrar_log igual ya que escribe en un .log externo
 def registrar_log(sku, producto, cantidad, motivo="APORTE HOGAR"):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_line = f"[{timestamp}] SKU: {sku} | CANT: {cantidad} | MOTIVO: {motivo} | PROD: {producto}\n"
@@ -18,34 +73,3 @@ def registrar_log(sku, producto, cantidad, motivo="APORTE HOGAR"):
             f.write(log_line)
     except:
         pass
-
-def registrar_aporte_hogar(df_i):
-    limpiar_pantalla()
-    print("🏠 REGISTRO DE APORTE HOGAR (0 para cancelar)")
-    sku = input("INGRESE SKU DEL PRODUCTO: ").upper()
-    
-    # SALIDA DE EMERGENCIA
-    if sku == "0" or sku == "":
-        print("Operación cancelada.")
-        time.sleep(1)
-        return
-    
-    if sku in df_i['SKU'].values:
-        try:
-            cantidad = int(input(f"CANTIDAD PARA CONSUMO INTERNO: "))
-            idx = df_i.index[df_i['SKU'] == sku].tolist()[0]
-            
-            actual_hogar = float(df_i.at[idx, 'Aporte Hogar']) if pd.notnull(df_i.at[idx, 'Aporte Hogar']) else 0.0
-            df_i.at[idx, 'Aporte Hogar'] = actual_hogar + cantidad
-            df_i.at[idx, 'Subtotal'] = df_i.at[idx, 'Inventario actual'] - df_i.at[idx, 'Aporte Hogar']
-            
-            df_i.to_csv(INV_FILE, index=False)
-            nombre_prod = df_i.at[idx, 'Funcion']
-            registrar_log(sku, nombre_prod, cantidad)
-
-            print("\n✅ BASE DE DATOS LOCAL ACTUALIZADA.")
-        except ValueError:
-            print("\n❌ ERROR: INGRESE UN NÚMERO VÁLIDO.")
-    else:
-        print("\n❌ SKU NO ENCONTRADO.")
-    input("\nENTER PARA CONTINUAR...")
