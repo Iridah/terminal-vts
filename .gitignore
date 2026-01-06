@@ -8,6 +8,7 @@ data_v.csv
 *.txt
 *.db
 *.db.bak
+*.md.bak
 __pycache__/
 .env
 
