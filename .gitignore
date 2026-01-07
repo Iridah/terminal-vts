@@ -9,6 +9,7 @@ data_v.csv
 *.db
 *.db.bak
 *.md.bak
+*.moo
 __pycache__/
 .env
 

@@ -114,28 +114,44 @@ def valorizar_inventario(df_i=None, df_m=None):
                 print(f" - [{c[0]:10}] {c[1][:35]:35} | {c[2]:3} un.")
     pausar()
 
-def generar_lista_compras(df_i=None, df_m=None):
+def generar_lista_compras():
     limpiar_pantalla()
-    print("🛒 SUGERENCIA DE REPOSICIÓN SQL")
+    print("🛒 SUGERENCIA DE REPOSICIÓN ESTRATÉGICA (Semáforo SQL)")
     imprimir_separador()
+    
     with obtener_conexion() as conn:
         cursor = conn.cursor()
+        # Traemos datos de ambas tablas para calcular la decisión en el aire
         query = """
-            SELECT i.sku, i.funcion, i.subtotal, m.costo_neto 
-            FROM inventario i JOIN maestro m ON i.sku = m.sku
+            SELECT i.sku, i.funcion, i.subtotal, m.costo_neto, 
+                   m.margen, m.precio_venta, m.comp_min, m.comp_max 
+            FROM inventario i 
+            JOIN maestro m ON i.sku = m.sku
             WHERE i.subtotal <= 1
+            ORDER BY m.margen DESC
         """
         cursor.execute(query)
         faltantes = cursor.fetchall()
+        
         if faltantes:
-            total = 0
+            total_inversion = 0
+            print(f"{'SKU':10} | {'PRODUCTO':25} | {'STOCK':5} | {'ESTRATEGIA'}")
+            print("-" * 70)
+            
             for f in faltantes:
-                # f[0]: SKU, f[1]: Nombre, f[2]: Stock, f[3]: Costo
-                nombre_formateado = f[1][:20]
-                print(f"[{f[0]:10}] {f[1][:30]:30} | Stock: {f[2]:2} | Costo: ${f[3]:>6,.0f}")
-                total += (f[3] * 5)
-            print(f"\n💰 INVERSIÓN EST. (Base 5 un.): ${total:,.0f}")
-        else: print("✅ TODO EN ORDEN.")
+                # Recuperamos la lógica de decisión ejecutiva
+                decision = obtener_decision_ejecutiva(f[4], f[5], f[6], f[7])
+                
+                # Asignación de "color" visual (texto)
+                emoji = "🔴" if "DESCARTE" in decision else "🟢" if "META" in decision else "🔥" if "GANCHO" in decision else "🟡"
+                
+                print(f"[{f[0]:8}] {f[1][:25]:25} | {f[2]:5} | {emoji} {decision}")
+                total_inversion += (f[3] * 5) # Estimación base 5 unidades
+            
+            print("-" * 70)
+            print(f"💰 INVERSIÓN ESTIMADA PARA REPOSICIÓN (Base 5 un.): ${total_inversion:,.0f}")
+        else:
+            print("✅ TODO EN ORDEN: No hay productos críticos en stock.")
     pausar()
 
 def tablero_estrategico(df_m=None):
@@ -166,6 +182,7 @@ def ver_super_ganchos(df_m=None):
     pausar()
 
 def calculadora_packs(df_m=None):
+
     limpiar_pantalla()
     print("📦 CREADOR DE COMBOS SQL")
     imprimir_separador()
@@ -183,4 +200,113 @@ def calculadora_packs(df_m=None):
                 total += res[1]
         if total > 0:
             print(f"\nTOTAL: ${total:,.0f} | COMBO (-10%): ${(total*0.9):,.0f}")
+    pausar()
+
+def modulo_egreso():
+    while True:
+        limpiar_pantalla()
+        imprimir_separador()
+        print("📦 MÓDULO DE EGRESO DE MERCADERÍA")
+        print(" 1. Registrar Venta (Egreso General)")
+        print(" 2. Aporte Hogar (Consumo Interno)")
+        print(" 3. Anular Salida (Corrección de stock)")
+        print(" 0. Volver al menú principal")
+        imprimir_separador()
+        
+        op = input("Seleccione tipo de salida: ")
+        if op == "0": break
+        
+        sku = input("Ingrese SKU del producto: ").strip().upper()
+        try:
+            cantidad = int(input("Cantidad: "))
+        except: 
+            print("❌ Cantidad inválida."); pausar(); continue
+
+        with obtener_conexion() as conn:
+            cursor = conn.cursor()
+            
+            if op == "1": # Venta General
+                cursor.execute("UPDATE inventario SET subtotal = subtotal - ? WHERE sku = ?", (cantidad, sku))
+                print(f"✅ Venta registrada: -{cantidad} un. en {sku}")
+            
+            elif op == "2": # Aporte Hogar
+                cursor.execute("""
+                    UPDATE inventario 
+                    SET subtotal = subtotal - ?, aporte_hogar = aporte_hogar + ? 
+                    WHERE sku = ?""", (cantidad, cantidad, sku))
+                print(f"✅ Aporte Hogar registrado: -{cantidad} un. en {sku}")
+                
+            elif op == "3": # Anulación (Suma al stock)
+                cursor.execute("UPDATE inventario SET subtotal = subtotal + ? WHERE sku = ?", (cantidad, sku))
+                print(f"✅ Stock corregido: +{cantidad} un. en {sku}")
+
+            conn.commit()
+            if cursor.rowcount == 0:
+                print("❌ SKU no encontrado en la base de datos.")
+        pausar()
+
+def modulo_administracion():
+    while True:
+        limpiar_pantalla()
+        imprimir_separador()
+        print("🛠️ PANEL DE ADMINISTRACIÓN CENTRALIZADO")
+        print(" 1. Sincronizar Auditoría (Cloud Bridge)")
+        print(" 2. Editor de Maestro (Precios/Costos/Nuevos)")
+        print(" 3. Bautismo de Secciones (Mapeo Masivo)")
+        print(" 0. Volver al menú principal")
+        imprimir_separador()
+        
+        op = input("VTS_ADMIN > ")
+        if op == "0": break
+        
+        if op == "2": # EDITOR MAESTRO (Resuelve tus dudas de carga)
+            sku = input("Ingrese SKU: ").strip().upper()
+            with obtener_conexion() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT producto, costo_neto, precio_venta FROM maestro WHERE sku = ?", (sku,))
+                res = cursor.fetchone()
+                
+                if res: # SKU EXISTE -> ACTUALIZAR
+                    print(f"Editando: {res[0]}")
+                    n_costo = input(f"Nuevo Costo (actual {res[1]}): ") or res[1]
+                    n_venta = input(f"Nuevo Precio (actual {res[2]}): ") or res[2]
+                    cursor.execute("UPDATE maestro SET costo_neto = ?, precio_venta = ? WHERE sku = ?", (n_costo, n_venta, sku))
+                    print("✅ Producto actualizado.")
+                else: # SKU NUEVO -> REGISTRAR
+                    print("✨ SKU detectado como NUEVO. Iniciando registro...")
+                    nombre = input("Nombre del Producto: ")
+                    costo = float(input("Costo Neto: "))
+                    venta = float(input("Precio Venta: "))
+                    seccion = input("Prefijo Sección (V-LIM, V-ELE, etc): ")
+                    
+                    cursor.execute("INSERT INTO maestro (sku, producto, costo_neto, precio_venta, seccion) VALUES (?,?,?,?,?)",
+                                   (sku, nombre, costo, venta, seccion))
+                    cursor.execute("INSERT INTO inventario (sku, funcion, subtotal, aporte_hogar) VALUES (?,?,0,0)",
+                                   (sku, nombre))
+                    print(f"✅ {nombre} registrado con éxito en Maestro e Inventario.")
+                conn.commit()
+            pausar()
+
+def registrar_entrada():
+    limpiar_pantalla()
+    imprimir_separador()
+    print("📦 REGISTRO DE ENTRADA / INGRESO DE STOCK")
+    sku = input("Ingrese SKU: ").strip().upper()
+    if sku in ["", "0"]: return
+
+    with obtener_conexion() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT producto, subtotal FROM inventario WHERE sku = ?", (sku,))
+        res = cursor.fetchone()
+
+        if res:
+            print(f"Producto: {res[0]} | Stock actual: {res[1]}")
+            try:
+                cantidad = int(input("Cantidad a INGRESAR: "))
+                cursor.execute("UPDATE inventario SET subtotal = subtotal + ? WHERE sku = ?", (cantidad, sku))
+                conn.commit()
+                print(f"✅ Stock actualizado: +{cantidad} unidades.")
+            except ValueError: print("❌ Cantidad inválida.")
+        else:
+            print("⚠️ SKU no existe. ¿Desea crearlo en la Opción 7?")
     pausar()

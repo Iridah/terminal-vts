@@ -1,6 +1,8 @@
+# vts_main
 import shutil
 import pandas as pd
 import os
+import sys
 from datetime import datetime
 import time
 from vts_graphics import visualizar_analitica_macro
@@ -18,6 +20,12 @@ from database_manager import (
 
 # CONFIGURACIÓN DE SEGURIDAD
 BACKUP_FILE = "sync_backup.txt"
+def realizar_backup_local():
+    try:
+        shutil.copy2(DB_NAME, f"{DB_NAME}.bak")
+        print(f"\n✅ Respaldo creado: {DB_NAME}.bak")
+    except Exception as e:
+        print(f"⚠️ Error en backup: {e}")
 
 def pantalla_inicio():
     # 1. Limpieza absoluta de la terminal
@@ -78,7 +86,6 @@ def menu():
     # 1. ARRANQUE DEL SISTEMA (Se ejecuta UNA vez)
     pantalla_inicio()
     inicializar_db()
-    
     conectado = verificar_conexion()
     status = "ONLINE (LOCAL SQL)" if conectado else "OFFLINE (EMERGENCIA)"
     
@@ -102,44 +109,39 @@ def menu():
                 if criticos > 0: alerta_compras = f"⚠️ {criticos} REVISAR!"
         
         # --- ENCABEZADO ---
-        print(f"        🐮 VTS v1.7.6 🐮 | STATUS: {status}")
-        print("="*65)
-        print(" 1. 🔍 BÚSQUEDA RÁPIDA       2. 🏠 REGISTRAR HOGAR")
-        print(" 3. 📑 EXPORTAR TXT          4. 💰 VALORIZACIÓN (KARDEX)")
-        print(" 5. 🧠 TABLERO ESTRATÉGICO   6. 🛒 LISTA DE COMPRAS [" + alerta_compras + "]")
-        print(" 7. 🔥 SUPERGANCHOS          8. 📦 CALCULAR PACKS")
-        print(" 9. 🚪 SALIR                 0. 📊 ANALÍTICA")
-        print("="*65)
+        print(f"        🐮 VTS v2.1.0 🐮 | STATUS: {'ONLINE' if conectado else 'OFFLINE'}")
+        print(" [1] 📦-> REGISTRAR entrada / ingreso (Carga stock)")
+        print(" [2] 📦<- REGISTRAR SALIDA / EGRESO (Ventas/Hogar)")
+        print(" [3] 🔍 BÚSQUEDA RÁPIDA (Lazy Search)")
+        print(" [4] 📦 CALCULADORA DE COMBOS")
+        print("-" * 50)
+        print(" [5] 💰 TABLERO ESTRATÉGICO (Márgenes/Ganchos)")
+        print(" [6] 🛒 SUGERENCIA DE REPOSICIÓN (Semáforo)")
+        print(" [7] 🛠  ADMINISTRACIÓN (Cloud Bridge/Fixes)")
+        print(" [8] 📊 VTS ANALYTICS (Estado Macro)")
+        print("-" * 50)
+        print(" [0] 🚪 GUARDAR Y SALIR")
         
         op = input("VTS_INPUT > ") 
 
-        if op == "9":
+        if op == "0":
             if conectado:
-                try:
-                    shutil.copy2("vts_mardum.db", "vts_mardum.db.bak")
-                    print("💾 Respaldo local creado (vts_mardum.db.bak)")
-                except Exception as e:
-                    print(f"⚠️ No se pudo crear el respaldo: {e}")
-            
-            print("Cerrando Terminal VTS 🐮... ¡Buen turno!")
-            break
+                realizar_backup_local() # Función unificada que usa shutil.copy2
+            print("Cerrando Terminal VTS 🐮... ¡Buen turno!"); break
 
         if not conectado:
             print("⚠️ MODO OFFLINE: Solo se permite SALIR (9)"); time.sleep(1)
             continue
 
         # LLAMADAS SIMPLIFICADAS (Pure SQL)
-        if op == "0": visualizar_analitica_macro()
-        elif op == "1": busqueda_rapida()
-        elif op == "2": registrar_aporte_hogar() 
-        elif op == "3": exportar_datos()
-        elif op == "4": valorizar_inventario()
+        if op == "1": registrar_entrada()   # NUEVA
+        elif op == "2": modulo_egreso()     # EXISTENTE
+        elif op == "3": busqueda_rapida()
+        elif op == "4": calculadora_packs()
         elif op == "5": tablero_estrategico()
         elif op == "6": generar_lista_compras()
-        elif op == "7": ver_super_ganchos()
-        elif op == "8": calculadora_packs()
-        else:
-            print("❌ Opción no válida."); time.sleep(1)
+        elif op == "7": modulo_administracion()
+        elif op == "8": visualizar_analitica_macro() # Movida al 8
 
 if __name__ == "__main__":
     menu()

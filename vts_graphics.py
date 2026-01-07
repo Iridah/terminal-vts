@@ -1,3 +1,4 @@
+#vts_graphics.py
 import sqlite3
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -12,7 +13,7 @@ def visualizar_analitica_macro():
 
     try:
         with sqlite3.connect(DB_NAME) as conn:
-            # 1. Capital por Sección
+            # 1. Capital por Sección (Para la Torta)
             query_seccion = """
                 SELECT m.Seccion, SUM(i.subtotal * m.costo_neto) as valor
                 FROM inventario i
@@ -22,12 +23,14 @@ def visualizar_analitica_macro():
             """
             df_cap = pd.read_sql_query(query_seccion, conn)
 
-            # 2. Top 10 Productos con más capital retenido
+            # 2. Inversión Total por Sección (Para las Barras)
+            # Cambiamos 'funcion' por 'Seccion' y 'valor_total' por 'inversion'
             query_top = """
-                SELECT i.funcion, (i.subtotal * m.costo_neto) as valor_total
+                SELECT m.Seccion, SUM(i.subtotal * m.costo_neto) as inversion
                 FROM inventario i
                 JOIN maestro m ON i.sku = m.sku
-                ORDER BY valor_total DESC LIMIT 10
+                GROUP BY m.Seccion
+                ORDER BY inversion DESC
             """
             df_top = pd.read_sql_query(query_top, conn)
 
@@ -43,11 +46,12 @@ def visualizar_analitica_macro():
         ax1.pie(df_cap['valor'], labels=df_cap['Seccion'], autopct='%1.1f%%', startangle=140)
         ax1.set_title("Distribución de Capital por Sección")
 
-        # Gráfico 2: Barras Top Inversión
-        ax2.barh(df_top['funcion'], df_top['valor_total'], color='skyblue')
+        # Gráfico 2: Barras Inversión por Sección
+        # USAMOS LOS NOMBRES DE COLUMNA DEL SQL: 'Seccion' e 'inversion'
+        ax2.barh(df_top['Seccion'], df_top['inversion'], color='skyblue') # Nombres corregidos
         ax2.set_xlabel('Valor en Pesos ($)')
-        ax2.set_title("Top 10: Mayor Inversión en Bodega")
-        plt.gca().invert_yaxis()
+        ax2.set_title("Inversión Total por Departamento")
+        ax2.invert_yaxis() # Invertir para que la mayor inversión esté arriba
 
         plt.tight_layout()
         print("✅ Gráficos generados. Cierra la ventana para volver al VTS.")

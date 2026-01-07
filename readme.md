@@ -1,60 +1,55 @@
-# VTS - Vacadari Terminal System v1.8.1 🐮
-Sistema de gestión de inventario táctico basado en terminal para control de stock, valorización y toma de decisiones ejecutivas. Ahora potenciado por motor SQL.
+# VTS - Vacadari Terminal System v2.1.0 🐮
+Sistema de gestión de inventario táctico basado en terminal para control de stock, valorización y toma de decisiones ejecutivas. Ahora operando bajo arquitectura SQL Modular.
 
 ## 🚀 Inicio Rápido 2026
-1. Requisitos: Tener `pandas` instalado: `pip install pandas`.
+1. **Requisitos**: `pip install pandas matplotlib sqlite3`
+2. **Despliegue Inicial**: Ejecutar `python3 vts_setup.py` (Solo una vez para migrar desde CSV).
+3. **Ejecución**: Lanzar con `python3 vts_main.py`.
+4. **Respaldo**: El sistema genera `vts_mardum.db.bak` automáticamente al salir (Opción 0).
 
-2. Preparación: Mantener los archivos `data_s.csv` y `data_v.csv` en la raíz (solo para el primer despliegue).
+## 🏗️ Arquitectura del Sistema: SQL Modular
+VTS ha dejado de ser un script lineal para convertirse en un ecosistema de módulos especializados:
 
-3. Inicialización: Ejecutar `python3 vts_setup.py` para construir el núcleo SQL.
+* **`vts_main.py`**: Interfaz de usuario y orquestador central (Illidan 66px Engine).
+* **`vts_logic.py`**: Motor de reglas de negocio, cálculos de márgenes y gestión de stock.
+* **`vts_graphics.py`**: Dashboard visual de capital mediante Matplotlib.
+* **`database_manager.py`**: Capa de persistencia y gestión de conexión SQLite.
+* **`vts_utils.py`**: Kit de herramientas estéticas y validación de entrada.
 
-4. Ejecución: Lanzar con `python3 main.py`.
+## 🖥️ Interfaz v2.1 (Panel de Control)
+La nueva disposición separa el flujo operativo de la inteligencia de negocio:
+- **Flujo 1-4**: Operaciones de Bodega (Ingresos, Egresos, Búsquedas y Combos).
+- **Flujo 5-8**: Inteligencia de Mercado (Estrategias, Reposición, Administración y Analytics).
 
-## 🏗️ Arquitectura del Sistema: SQL Engine
-El sistema ha evolucionado de una gestión basada en archivos planos a una arquitectura relacional sólida:
+## 🛡️ Seguridad y Resguardo
+- **Zero-Data Policy**: El `.gitignore` protege el modelo de negocios (confidencial).
+- **Integridad SQL**: Validación automática de SKUs en el arranque del sistema.
+- **Backup Unificado**: Respaldo local mediante `shutil.copy2` para asegurar la integridad binaria de la DB.
 
-- **Almacén Central (vts_mardum.db)**: Base de datos SQLite que centraliza el Maestro y el Inventario.
-
-- **Consultas Relacionales**: Uso de JOINs para cruzar precios y stock en tiempo real sin latencia de disco.
-
-- **Persistencia Robusta**: Registro instantáneo de movimientos; cada "Aporte Hogar" se graba directamente en la DB.
-
-- **Sistema de Respaldo**: Creación automática de vts_mardum.db.bak en cada cierre seguro (Opción 9).
-
-## 🖥️ Interfaz y Experiencia
-- **Splash Screen**: Arte ASCII (66px) con carga perezosa de librerías.
-
-- **Alertas Dinámicas**: El menú principal consulta la DB en milisegundos para indicar stock crítico mediante el tag `[⚠️ REVISAR!]`.
-
-- **Status Local**: Indicador `STATUS: ONLINE (LOCAL SQL)` para confirmar conexión con el motor.
-
-## 🛡️ Seguridad y Privacidad
-Este repositorio utiliza un archivo `.gitignore` estricto. **NUNCA** se subirán archivos `.csv`, `.db`, `.xlsx`, `*.bak` o `.log` ya que contienen el modelo de negocios y costos confidenciales de Inversiones Vacadari SpA. El resto, puedes ajustarlo segun tus requerimientos.
-
-## Flujo de datos
-El sistema opera bajo un ciclo de **Consulta-Procesamiento-Persistencia**, separando la lógica de negocio de la gestión de datos:
+## 📊 Flujo de Datos 2.1
+El sistema ahora integra la entrada manual y la analítica visual como pilares del ciclo de vida del inventario:
 
 ```mermaid
 graph TD
-    A[AUDITORIA_REAL.csv] --> B(vts_cloud_bridge.py)
-    B --> C[(vts_mardum.db)]
-    D[vts_fix_precios.py] --> C
-    C --> E[vts_main.py]
-    E --> F{Reportes}
-    F --> G[Analítica Macro - Opción 0]
+    A[VTS_ADMIN: Bridge/Editor] --> B[(vts_mardum.db)]
+    C[OP 1: Registro Entrada] --> B
+    D[OP 2: Registro Salida] --> B
+    B --> E[vts_main.py]
+    E --> F{BI & Analytics}
+    F --> G[Analítica Macro: Matplotlib - Opción 8]
     F --> H[Tablero Estratégico - Opción 5]
-    F --> I[Reposición - Opción 6]
+    F --> I[Semaforización Reposición - Opción 6]
 ```
 
-## 🛠️ Roadmap 2026
-[x] Migración total de arquitectura CSV a SQLite.
+## 🛠️ Roadmap Actualizado (Enero 2026)
+[x] Migración total a arquitectura SQLite (Motor Relacional).
 
-[x] Sistema de inicialización y normalización de columnas (vts_setup.py).
+[x] Consolidación de módulos Administrativos (Bridge/Editor/Bautismo).
 
-[x] Respaldo automático de base de datos binaria.
+[x] Módulo de Gráficos: Visualización de capital por secciones mediante Matplotlib.
 
-[ ] Conexión GSheet API: Sincronización de entrada de datos remota y reformulación de planillas.
+[x] Sistema de Respaldo Local unificado.
 
-[ ] Módulo de Gráficos: Integración con Matplotlib para visualización de capital y rotación de stock.
+[ ] PRÓXIMO: Automatización de Catálogo de Ofertas (Marketing Generator).
 
-[ ] Cloud Sync: Subida automática del respaldo .db.bak a la nube.
+[ ] PRÓXIMO: Cloud Sync - Sincronización automática de respaldos a la nube.
