@@ -36,20 +36,14 @@ El sistema opera bajo un ciclo de **Consulta-Procesamiento-Persistencia**, separ
 
 ```mermaid
 graph TD
-    A[data_s.csv / data_v.csv] -->|Carga Inicial| B(vts_setup.py)
-    B -->|Normaliza e Inyecta| C[(vts_mardum.db)]
-    
-    subgraph Nucleo_VTS
-        D[main.py - Director] <-->|Peticiones| E[vts_logic.py - Cerebro]
-        E <-->|Consultas SQL| C
-        D <-->|Updates Directos| F[database_manager.py - Almacen]
-        F <-->|Commit| C
-    end
-    
-    D -->|Opcion 9| G[vts_mardum.db.bak]
-    
-    style C fill:#f96,stroke:#333,stroke-width:2px
-    style G fill:#bbf,stroke:#333,stroke-dasharray:5 5
+    A[AUDITORIA_REAL.csv] --> B(vts_cloud_bridge.py)
+    B --> C[(vts_mardum.db)]
+    D[vts_fix_precios.py] --> C
+    C --> E[vts_main.py]
+    E --> F{Reportes}
+    F --> G[Analítica Macro - Opción 0]
+    F --> H[Tablero Estratégico - Opción 5]
+    F --> I[Reposición - Opción 6]
 ```
 
 ## 🛠️ Roadmap 2026

@@ -3,6 +3,7 @@ import pandas as pd
 import os
 from datetime import datetime
 import time
+from vts_graphics import visualizar_analitica_macro
 
 # IMPORTACIONES DESDE TUS MÓDULOS (La clave del éxito)
 from vts_utils import limpiar_pantalla, pausar, imprimir_separador
@@ -107,7 +108,7 @@ def menu():
         print(" 3. 📑 EXPORTAR TXT          4. 💰 VALORIZACIÓN (KARDEX)")
         print(" 5. 🧠 TABLERO ESTRATÉGICO   6. 🛒 LISTA DE COMPRAS [" + alerta_compras + "]")
         print(" 7. 🔥 SUPERGANCHOS          8. 📦 CALCULAR PACKS")
-        print(" 9. 🚪 SALIR")
+        print(" 9. 🚪 SALIR                 0. 📊 ANALÍTICA")
         print("="*65)
         
         op = input("VTS_INPUT > ") 
@@ -128,7 +129,8 @@ def menu():
             continue
 
         # LLAMADAS SIMPLIFICADAS (Pure SQL)
-        if op == "1": busqueda_rapida()
+        if op == "0": visualizar_analitica_macro()
+        elif op == "1": busqueda_rapida()
         elif op == "2": registrar_aporte_hogar() 
         elif op == "3": exportar_datos()
         elif op == "4": valorizar_inventario()

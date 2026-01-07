@@ -1,3 +1,4 @@
+# vts_logic
 import sqlite3
 import pandas as pd
 from datetime import datetime
@@ -55,16 +56,16 @@ def busqueda_rapida(df_i=None, df_m=None):
         imprimir_separador()
         print("🔍 BÚSQUEDA RÁPIDA SQL (0 para volver)")
         imprimir_separador()
-        termino = input("PRODUCTO / SKU: ").strip().upper()
+        termino = input("PRODUCTO / SKU: ").strip().lower()
         if termino in ["", "0"]: break
 
         with obtener_conexion() as conn:
             cursor = conn.cursor()
             query = """
-                SELECT i.sku, i.funcion, i.subtotal, m.precio_venta 
-                FROM inventario i
-                LEFT JOIN maestro m ON i.sku = m.sku
-                WHERE i.funcion LIKE ? OR i.sku LIKE ?
+            SELECT i.sku, i.funcion, i.subtotal, m.precio_venta 
+            FROM inventario i
+            LEFT JOIN maestro m ON i.sku = m.sku
+            WHERE LOWER(i.funcion) LIKE ? OR LOWER(i.sku) LIKE ?
             """
             cursor.execute(query, (f'%{termino}%', f'%{termino}%'))
             res = cursor.fetchall()
@@ -103,24 +104,14 @@ def valorizar_inventario(df_i=None, df_m=None):
         print(f"VALOR TOTAL BODEGA: ${activos:,.0f}")
         print(f"CONSUMO INTERNO:   {hogar if hogar else 0} un.")
         
-        # Alerta de stock crítico
-        cursor.execute("SELECT funcion, subtotal FROM inventario WHERE subtotal <= 1")
+        # Ajustamos el SELECT para traer SKU y NOMBRE
+        cursor.execute("SELECT sku, funcion, subtotal FROM inventario WHERE subtotal <= 1")
         criticos = cursor.fetchall()
         if criticos:
             print("\n⚠️ CRÍTICOS:")
-            for c in criticos: print(f" - {c[0]}: {c[1]} un.")
-    pausar()
-
-def tablero_estrategico(df_m=None):
-    limpiar_pantalla()
-    print(f"{'PRODUCTO':20} | {'MARGEN':7} | {'ESTRATEGIA'}")
-    imprimir_separador()
-    with obtener_conexion() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT producto, margen, precio_venta, comp_min, comp_max FROM maestro ORDER BY margen DESC")
-        for r in cursor.fetchall():
-            decision = obtener_decision_ejecutiva(r[1], r[2], r[3], r[4])
-            print(f"{r[0][:20]:20} | {r[1]*100:6.1f}% | {decision}")
+            for c in criticos: 
+                # c[0] es SKU, c[1] es descripción
+                print(f" - [{c[0]:10}] {c[1][:35]:35} | {c[2]:3} un.")
     pausar()
 
 def generar_lista_compras(df_i=None, df_m=None):
@@ -130,7 +121,7 @@ def generar_lista_compras(df_i=None, df_m=None):
     with obtener_conexion() as conn:
         cursor = conn.cursor()
         query = """
-            SELECT i.funcion, i.subtotal, m.costo_neto 
+            SELECT i.sku, i.funcion, i.subtotal, m.costo_neto 
             FROM inventario i JOIN maestro m ON i.sku = m.sku
             WHERE i.subtotal <= 1
         """
@@ -139,10 +130,24 @@ def generar_lista_compras(df_i=None, df_m=None):
         if faltantes:
             total = 0
             for f in faltantes:
-                print(f"{f[0][:25]:25} | Stock: {f[1]} | Costo: ${f[2]:,.0f}")
-                total += (f[2] * 5)
+                # f[0]: SKU, f[1]: Nombre, f[2]: Stock, f[3]: Costo
+                nombre_formateado = f[1][:20]
+                print(f"[{f[0]:10}] {f[1][:30]:30} | Stock: {f[2]:2} | Costo: ${f[3]:>6,.0f}")
+                total += (f[3] * 5)
             print(f"\n💰 INVERSIÓN EST. (Base 5 un.): ${total:,.0f}")
         else: print("✅ TODO EN ORDEN.")
+    pausar()
+
+def tablero_estrategico(df_m=None):
+    limpiar_pantalla()
+    print(f"{'PRODUCTO':50} | {'MARGEN':7} | {'ESTRATEGIA'}")
+    imprimir_separador()
+    with obtener_conexion() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT producto, margen, precio_venta, comp_min, comp_max FROM maestro ORDER BY margen DESC")
+        for r in cursor.fetchall():
+            decision = obtener_decision_ejecutiva(r[1], r[2], r[3], r[4])
+            print(f"{r[0][:33]:50} | {r[1]*100:6.1f}% | {decision}")
     pausar()
 
 def ver_super_ganchos(df_m=None):
