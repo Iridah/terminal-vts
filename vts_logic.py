@@ -168,14 +168,19 @@ def tablero_estrategico():
         print(f"💰 VALOR TOTAL BODEGA: ${total:,.0f}")
         imprimir_separador()
 
-    # 2. Luego el Tablero
-    print(f"{'PRODUCTO':35} | {'MARGEN':7} | {'ESTRATEGIA'}")
+    # 2. Tablero con Termómetro Illidari (v2.2)
+    print(f"{'PRODUCTO':35} | {'MARGEN':8} | {'TERMÓMETRO ESTRATÉGICO'}")
+    imprimir_separador()
+    
     with obtener_conexion() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT producto, margen, precio_venta, comp_min, comp_max FROM maestro ORDER BY margen DESC")
+        # El COALESCE o IFNULL asegura que no lleguen 'Nones' al cálculo
+        cursor.execute("SELECT producto, IFNULL(margen, 0), precio_venta, comp_min, comp_max FROM maestro ORDER BY margen DESC")
+        
         for r in cursor.fetchall():
-            decision = obtener_decision_ejecutiva(r[1], r[2], r[3], r[4])
-            print(f"{r[0][:33]:35} | {r[1]*100:6.1f}% | {decision}")
+            m_val = float(r[1]) # Casteo seguro
+            termometro = obtener_termometro_rentabilidad(m_val)
+            print(f"{r[0][:33]:35} | {m_val*100:6.1f}% | {termometro}")
     pausar()
 
 def obtener_decision_ejecutiva(margen, precio, comp_min, comp_max):
@@ -224,6 +229,28 @@ def generar_lista_compras():
             print(f"[{f[0]:8}] {f[1][:25]:25} | {f[2]:2} un | {dec}")
     pausar()
 
+def obtener_termometro_rentabilidad(margen):
+    """
+    Escala de 5 niveles para Margen Post Gastos.
+    Incluye el nivel Illidari para productos de alto rendimiento.
+    """
+    try:
+        m = float(margen)
+        if m < 0.05: 
+            return "🟤 [ZONA PÉRDIDA]"    # < 5%
+        if m < 0.14: 
+            return "🔴 [SOBREVIVENCIA]"   # 5% - 14%
+        if m < 0.22: 
+            return "🟡 [ZONA NEUTRA]"     # 14% - 22%
+        if m < 0.28: 
+            return "🟢 [SALUDABLE]"       # 22% - 28%
+        
+        # EL NIVEL ILLIDARI: > 28% 
+        # En consola usamos un emoji o color ANSI si tu terminal lo soporta
+        return "🟣 [MAX ENGAGEMENT - ILLIDARI]" 
+    except:
+        return "⚪ [SIN DATOS]"
+    
 # --- 4. CENTRO ADMINISTRATIVO ---
 
 def modulo_administracion():

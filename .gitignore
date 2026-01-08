@@ -6,6 +6,7 @@ data_v.csv
 *.xlsx
 *.json
 *.txt
+*.bak
 *.db
 *.db.bak
 *.md.bak

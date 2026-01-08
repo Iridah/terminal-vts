@@ -31,14 +31,20 @@ El sistema ahora integra la entrada manual y la analítica visual como pilares d
 
 ```mermaid
 graph TD
-    A[VTS_ADMIN: Bridge/Editor] --> B[(vts_mardum.db)]
-    C[OP 1: Registro Entrada] --> B
-    D[OP 2: Registro Salida] --> B
-    B --> E[vts_main.py]
-    E --> F{BI & Analytics}
-    F --> G[Analítica Macro: Matplotlib - Opción 8]
-    F --> H[Tablero Estratégico - Opción 5]
-    F --> I[Semaforización Reposición - Opción 6]
+    A[Terminal VTS] --> B{Motor SQL}
+    B --> C[Maestro: Precios/Márgenes]
+    B --> D[Inventario: Stock/Hogar]
+    
+    subgraph "Saneamiento Módulo 4"
+    E[UX: Escape en Editor]
+    F[Analítica: Monitor Legacy]
+    G[Backup: Purga Automática >30d]
+    end
+    
+    C --> E
+    D --> E
+    E --> G
+    F --> B
 ```
 
 ## 🛠️ Roadmap Actualizado (Enero 2026)
