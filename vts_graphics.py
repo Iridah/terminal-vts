@@ -39,7 +39,8 @@ def visualizar_analitica_macro():
             pausar(); return
 
         # --- GENERACIÓN DEL DASHBOARD ---
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+        plt.rcParams.update({'font.size': 8}) # Letra más pequeña para monitores viejos
+        fig, ax = plt.subplots(figsize=(6, 4)) # Tamaño compacto
         fig.suptitle('📈 VTS ANALYTICS - ESTADO MACRO DE INVENTARIO', fontsize=16)
 
         # Gráfico 1: Torta de Capital
@@ -53,7 +54,7 @@ def visualizar_analitica_macro():
         ax2.set_title("Inversión Total por Departamento")
         ax2.invert_yaxis() # Invertir para que la mayor inversión esté arriba
 
-        plt.tight_layout()
+        plt.tight_layout() # Crucial para monitores pequeños
         print("✅ Gráficos generados. Cierra la ventana para volver al VTS.")
         plt.show()
 
