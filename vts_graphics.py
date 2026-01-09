@@ -1,4 +1,4 @@
-#vts_graphics.py
+# vts_graphics.py
 import sqlite3
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -13,20 +13,19 @@ def visualizar_analitica_macro():
 
     try:
         with sqlite3.connect(DB_NAME) as conn:
-            # 1. Capital por Sección (Para la Torta)
+            # 1. Capital por Sección (Para la Torta) - Ajustado a tu DB actual
             query_seccion = """
-                SELECT m.Seccion, SUM(i.subtotal * m.costo_neto) as valor
+                SELECT m.Seccion, SUM(i.stock_actual * m.costo_neto) as valor
                 FROM inventario i
                 JOIN maestro m ON i.sku = m.sku
-                WHERE i.subtotal > 0
+                WHERE i.stock_actual > 0
                 GROUP BY m.Seccion
             """
             df_cap = pd.read_sql_query(query_seccion, conn)
 
             # 2. Inversión Total por Sección (Para las Barras)
-            # Cambiamos 'funcion' por 'Seccion' y 'valor_total' por 'inversion'
             query_top = """
-                SELECT m.Seccion, SUM(i.subtotal * m.costo_neto) as inversion
+                SELECT m.Seccion, SUM(i.stock_actual * m.costo_neto) as inversion
                 FROM inventario i
                 JOIN maestro m ON i.sku = m.sku
                 GROUP BY m.Seccion
@@ -39,22 +38,24 @@ def visualizar_analitica_macro():
             pausar(); return
 
         # --- GENERACIÓN DEL DASHBOARD ---
-        plt.rcParams.update({'font.size': 8}) # Letra más pequeña para monitores viejos
-        fig, ax = plt.subplots(figsize=(6, 4)) # Tamaño compacto
-        fig.suptitle('📈 VTS ANALYTICS - ESTADO MACRO DE INVENTARIO', fontsize=16)
+        plt.style.use('dark_background') # Opcional: queda más "pro" y cansa menos la vista
+        plt.rcParams.update({'font.size': 9})
+        
+        # CORRECCIÓN AQUÍ: Creamos 1 fila y 2 columnas, asignando ax1 y ax2
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5)) 
+        fig.suptitle('📈 VTS ANALYTICS - ESTADO MACRO DE INVENTARIO', fontsize=14)
 
         # Gráfico 1: Torta de Capital
-        ax1.pie(df_cap['valor'], labels=df_cap['Seccion'], autopct='%1.1f%%', startangle=140)
-        ax1.set_title("Distribución de Capital por Sección")
+        ax1.pie(df_cap['valor'], labels=df_cap['Seccion'], autopct='%1.1f%%', startangle=140, shadow=True)
+        ax1.set_title("Distribución de Capital (%)")
 
         # Gráfico 2: Barras Inversión por Sección
-        # USAMOS LOS NOMBRES DE COLUMNA DEL SQL: 'Seccion' e 'inversion'
-        ax2.barh(df_top['Seccion'], df_top['inversion'], color='skyblue') # Nombres corregidos
+        ax2.barh(df_top['Seccion'], df_top['inversion'], color='orchid') # Color "Illidari" para las barras
         ax2.set_xlabel('Valor en Pesos ($)')
-        ax2.set_title("Inversión Total por Departamento")
-        ax2.invert_yaxis() # Invertir para que la mayor inversión esté arriba
+        ax2.set_title("Inversión Total ($)")
+        ax2.invert_yaxis() 
 
-        plt.tight_layout() # Crucial para monitores pequeños
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Ajuste para que el título no tape nada
         print("✅ Gráficos generados. Cierra la ventana para volver al VTS.")
         plt.show()
 
