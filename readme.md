@@ -30,21 +30,19 @@ La nueva disposición separa el flujo operativo de la inteligencia de negocio:
 El sistema ahora integra la entrada manual y la analítica visual como pilares del ciclo de vida del inventario:
 
 ```mermaid
-graph TD
-    A[Terminal VTS] --> B{Motor SQL}
-    B --> C[Maestro: Precios/Márgenes]
-    B --> D[Inventario: Stock/Hogar]
-    
-    subgraph "Saneamiento Módulo 4"
-    E[UX: Escape en Editor]
-    F[Analítica: Monitor Legacy]
-    G[Backup: Purga Automática >30d]
+graph LR
+    subgraph "VTS Local (Actual)"
+    A[vts_logic.py] --> B[SQLite]
     end
-    
-    C --> E
-    D --> E
-    E --> G
-    F --> B
+
+    subgraph "VTS 2.4 (Django/Cloud)"
+    C[views.py] --> D[models.py]
+    D --> E[(PostgreSQL)]
+    F[templates/dash.html] --> C
+    end
+
+    A -.->|Migración de Lógica| C
+    B -.->|Dump de Datos| E
 ```
 
 ## 🛠️ Roadmap Actualizado (Enero 2026)
