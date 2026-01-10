@@ -44,40 +44,125 @@ def verificar_integridad_base():
     except Exception as e:
         print(f"⚠️ No se pudo verificar integridad: {e}")
 
+def sanear_base_datos():
+    """Limpia inconsistencias, espacios en blanco y errores de duplicidad"""
+    limpiar_pantalla()
+    print("🧹 INICIANDO SANEAMIENTO DE BASE DE DATOS...")
+    
+    with obtener_conexion() as conn:
+        cursor = conn.cursor()
+        try:
+            # 1. Quitar espacios y estandarizar a Mayúsculas
+            cursor.execute("UPDATE maestro SET sku = UPPER(TRIM(sku))")
+            cursor.execute("UPDATE inventario SET sku = UPPER(TRIM(sku))")
+            
+            # 2. Eliminar posibles duplicados (si existen por error de espacios)
+            # Esto es preventivo para asegurar integridad
+            print("🔄 Normalizando índices de SKU...")
+            
+            # 3. Verificar si el stock de V-LIM-003 está "atrapado"
+            cursor.execute("SELECT stock_actual FROM inventario WHERE sku = 'V-LIM-003'")
+            res = cursor.fetchone()
+            print(f"📍 Estado actual V-LIM-003 en DB: {res[0] if res else 'No encontrado'}")
+            
+            conn.commit()
+            print("\n✅ SANEAMIENTO COMPLETADO: SKUs normalizados.")
+        except Exception as e:
+            print(f"❌ Error durante saneamiento: {e}")
+            conn.rollback()
+    pausar()
+
+def ver_log_movimientos():
+
+    """Visualizador de la tabla historial (Opción 6.5)"""
+    limpiar_pantalla()
+    print("📜 LOG DE MOVIMIENTOS (Trazabilidad)")
+    imprimir_separador()
+    print(f"{'FECHA':16} | {'SKU':12} | {'TIPO':8} | {'CANT':4} | {'MOTIVO'}")
+    imprimir_separador()
+    
+    with obtener_conexion() as conn:
+        cursor = conn.cursor()
+        # Mostramos los últimos 20 movimientos
+        cursor.execute("SELECT fecha, sku, tipo, cantidad, motivo FROM historial ORDER BY id DESC LIMIT 20")
+        for r in cursor.fetchall():
+            print(f"{r[0]:16} | {r[1]:12} | {r[2]:8} | {r[3]:4} | {r[4]}")
+    
+    imprimir_separador()
+    pausar()
 # --- 2. GESTIÓN OPERATIVA ---
 
 def registrar_movimiento_mercaderia():
-    """Registro unificado: stock_actual + lógica fiscal"""
+    """Registro unificado: Ingresos y 4 tipos de Egreso con Log"""
     limpiar_pantalla()
-    sku = input("Ingrese SKU para movimiento: ").strip().upper()
-    if sku in ["", "0"]: return
-
-    print("\n1. 📥 INGRESO (Compra) | 2. 📤 EGRESO (Venta/Hogar)")
-    op_mov = input("Seleccione: ")
+    sku_input = input("Ingrese SKU para movimiento: ").strip().upper()
+    if sku_input in ["", "0"]: return
 
     with obtener_conexion() as conn:
         cursor = conn.cursor()
+        # Verificamos existencia y traemos nombre para el feedback
+        cursor.execute("SELECT i.sku, i.stock_actual, m.producto FROM inventario i JOIN maestro m ON i.sku = m.sku WHERE i.sku = ?", (sku_input,))
+        res = cursor.fetchone()
         
-        if op_mov == "1":
-            print("\n1. Boleta | 2. Factura")
-            t_doc = "Factura" if input("Seleccione: ") == "2" else "Boleta"
-            try:
-                cant = int(input(f"Cantidad a INGRESAR: "))
-                cursor.execute("UPDATE maestro SET tipo_documento = ? WHERE sku = ?", (t_doc, sku))
-                cursor.execute("UPDATE inventario SET stock_actual = stock_actual + ? WHERE sku = ?", (cant, sku))
-                conn.commit()
-                print(f"✅ {cant} unidades ingresadas como {t_doc}.")
-            except ValueError: print("❌ Error: Número inválido.")
+        if not res:
+            print(f"❌ Error: El SKU [{sku_input}] no existe.")
+            pausar(); return
 
-        elif op_mov == "2":
-            print("\n1. VENTA | 2. USO HOGAR")
-            destino = "Hogar" if input("Seleccione: ") == "2" else "Venta"
-            try:
-                cant = int(input(f"Cantidad que SALE: "))
-                cursor.execute("UPDATE inventario SET stock_actual = stock_actual - ? WHERE sku = ?", (cant, sku))
-                conn.commit()
-                print(f"✅ {cant} unidades descontadas para {destino}.")
-            except ValueError: print("❌ Error: Número inválido.")
+        sku_db, stock_actual, nombre = res
+        print(f"\n📦 PRODUCTO: {nombre}")
+        print(f"📊 STOCK ACTUAL: {stock_actual}")
+        imprimir_separador()
+        
+        print("1. 📥 INGRESO (Compra/Reposición)")
+        print("2. 📤 EGRESO (Retiro de Inventario)")
+        op_principal = input("\nSeleccione operación: ")
+
+        try:
+            if op_principal == "1":
+                cant = int(input("Cantidad a INGRESAR: "))
+                motivo = "Compra/Reposición"
+                tipo_log = "INGRESO"
+                nueva_cant = stock_actual + cant
+            
+            elif op_principal == "2":
+                print("\n--- SELECCIONE MOTIVO DE RETIRO ---")
+                print("1. VENTA")
+                print("2. APORTE HOGAR")
+                print("3. GARANTÍA")
+                print("4. AJUSTE MANUAL")
+                m_op = input("Seleccione (1-4): ")
+                
+                # Mapeo exacto de tus 4 retiros
+                mapa_motivos = {
+                    "1": "Venta",
+                    "2": "Aporte Hogar",
+                    "3": "Garantia",
+                    "4": "Ajuste Manual"
+                }
+                motivo = mapa_motivos.get(m_op, "Otros")
+                cant = int(input(f"Cantidad para {motivo.upper()}: "))
+                tipo_log = "EGRESO"
+                nueva_cant = stock_actual - cant
+            else: return
+
+            # --- EJECUCIÓN ATÓMICA ---
+            fecha_log = datetime.now().strftime("%Y-%m-%d %H:%M")
+            
+            # 1. Actualizar Inventario
+            cursor.execute("UPDATE inventario SET stock_actual = ? WHERE sku = ?", (nueva_cant, sku_db))
+            
+            # 2. Registrar en Historial
+            cursor.execute("""
+                INSERT INTO historial (fecha, sku, tipo, cantidad, motivo) 
+                VALUES (?, ?, ?, ?, ?)
+            """, (fecha_log, sku_db, tipo_log, cant, motivo))
+            
+            conn.commit()
+            print(f"\n✅ CONSOLIDADO: {motivo} de {cant} unidades.")
+            print(f"🔍 Nuevo Stock en DB: {nueva_cant}")
+
+        except ValueError:
+            print("❌ Error: Ingrese un número válido.")
     pausar()
 
 def busqueda_rapida():
@@ -117,7 +202,31 @@ def generar_lista_compras():
             print(f"📦 [{f[0]:8}] {f[1][:30]:30} | STOCK: {f[2]} | COSTO REF: ${f[3]:,.0f}")
     pausar()
 
+def purgar_base_datos():
+    """Elimina tablas y reconstruye estructura (Doble Confirmación)"""
+    limpiar_pantalla()
+    print("⚠️  ADVERTENCIA: ESTÁS POR BORRAR TODO EL INVENTARIO ⚠️")
+    print("Esta acción es irreversible.")
+    
+    confirm1 = input("\n¿Está seguro? (Presione ENTER para continuar o 'N' para cancelar): ")
+    if confirm1.lower() == 'n': return
 
+    confirm2 = input("Escriba 'BORRAR TODO' para confirmar la destrucción: ")
+    
+    if confirm2 == "BORRAR TODO":
+        try:
+            with obtener_conexion() as conn:
+                conn.execute("DROP TABLE IF EXISTS maestro")
+                conn.execute("DROP TABLE IF EXISTS inventario")
+                conn.execute("DROP TABLE IF EXISTS historial")
+                # Aquí llamarías a tu función de inicialización de tablas si la tienes
+            print("\n🔥 Base de datos purgada. El sistema se reiniciará limpio.")
+            os._exit(0) # Forzamos salida para que al volver a abrir se creen tablas nuevas
+        except Exception as e:
+            print(f"❌ Error en la purga: {e}")
+    else:
+        print("\n✅ Purga cancelada. No se tocó nada.")
+    pausar()
 
 # --- 3. INTELIGENCIA Y REPORTES ---
 
@@ -126,7 +235,7 @@ def tablero_estrategico():
     limpiar_pantalla()
     with obtener_conexion() as conn:
         total = conn.execute("SELECT SUM(i.stock_actual * m.costo_neto) FROM inventario i JOIN maestro m ON i.sku = m.sku").fetchone()[0] or 0
-        print(f"💰 VALOR TOTAL BODEGA: ${total:,.0f}")
+        print(f"💰 VALOR TOTAL BODEGA: ${total:,.0f}.- NETO")
         
     # Ajuste de anchos para incluir SKU (12 chars)
     # Anchos: SKU(12) + Prod(30) + Marg(8) + Estado(20) + Stock(15) + separadores
@@ -175,89 +284,107 @@ def obtener_termometro_stock(actual, maximo):
         return "🔵 [SOBRESTOCK]"
     except: return "⚪ [ERROR]"
 
+def calculadora_packs():
+    """Lógica para calcular precio por pack (3 un, 6 un, etc.)"""
+    limpiar_pantalla()
+    print("🧮 CALCULADORA DE PACKS")
+    try:
+        precio_un = float(input("Precio unitario: $") or 0)
+        cant = int(input("Cantidad del pack: ") or 1)
+        descto = float(input("Porcentaje descuento (ej: 10): ") or 0) / 100
+        
+        total = (precio_un * cant) * (1 - descto)
+        print(f"\n💰 PRECIO PACK: ${total:,.0f}")
+        print(f"📉 AHORRO TOTAL: ${(precio_un * cant) - total:,.0f}")
+    except ValueError:
+        print("❌ Error: Datos inválidos.")
+    pausar()
+
 # --- 4. CENTRO ADMINISTRATIVO ---
 
 def ver_inventario_completo():
-    """Muestra la tabla de inventario pura"""
     limpiar_pantalla()
     print("📦 LISTADO COMPLETO DE EXISTENCIAS")
-    linea = "-" * 70
+    linea = "-" * 85 # Ampliamos la línea
     print(linea)
-    print(f"{'SKU':15} | {'PRODUCTO':35} | {'STOCK ACTUAL'}")
+    print(f"{'SKU':15} | {'PRODUCTO':35} | {'STOCK'} | {'ESTADO'}")
     print(linea)
     with obtener_conexion() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT i.sku, m.producto, i.stock_actual 
-            FROM inventario i 
-            JOIN maestro m ON i.sku = m.sku
+            SELECT i.sku, m.producto, i.stock_actual, m.comp_max 
+            FROM inventario i JOIN maestro m ON i.sku = m.sku
             ORDER BY i.sku ASC
         """)
         for r in cursor.fetchall():
-            print(f"{r[0]:15} | {r[1][:33]:35} | {r[2]:4} unidades")
+            term = obtener_termometro_stock(r[2], r[3])
+            print(f"{r[0]:15} | {r[1][:33]:35} | {r[2]:5} | {term}")
     print(linea)
     pausar()
 
 def modulo_administracion():
     limpiar_pantalla()
-    print("⚙️ MÓDULO ADMINISTRATIVO\n1. Ver Inventario\n2. Editor Maestro\n3. Backups\n0. Volver")
+    print("⚙️ MÓDULO ADMINISTRATIVO\n1. Ver Inventario\n2. Editor Maestro\n3. Backups\n4. Saneamiento DB\n5. Ver Log de Movimientos\n0. Volver")
     op = input("\nSeleccione: ")
     
     if op == "1":
         ver_inventario_completo()
 
-    if op == "2":
+    elif op == "2": # Cambiado a elif para mejor flujo
         limpiar_pantalla()
-        sku = input("Ingrese SKU para bautismo/edición (0 para volver): ").strip().upper()
+        sku = input("Ingrese SKU (0 para volver): ").strip().upper()
         if sku in ["", "0"]: 
-                return
-            with obtener_conexion() as conn:
-                cursor = conn.cursor()
-                # Buscamos si ya existe en el maestro
-                cursor.execute("SELECT producto, costo_neto, precio_venta FROM maestro WHERE sku = ?", (sku,))
-                existe = cursor.fetchone()
+            return
+            
+        with obtener_conexion() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT producto, costo_neto, precio_venta FROM maestro WHERE sku = ?", (sku,))
+            existe = cursor.fetchone()
+            
+            if existe:
+                print(f"\n📝 PRODUCTO ENCONTRADO: {existe[0]}")
+                print(f"Costo actual: ${existe[1]:,.0f} | Venta: ${existe[2]:,.0f}")
+                print("-" * 30)
+                print("1. Cambiar Origen Fiscal (Boleta/Factura)")
+                print("2. Actualizar Costo/Venta")
+                sub_op = input("Seleccione: ")
                 
-                if existe:
-                    print(f"\n📝 PRODUCTO ENCONTRADO: {existe[0]}")
-                    print(f"Costo actual: ${existe[1]:,.0f} | Venta: ${existe[2]:,.0f}")
-                    print("-" * 30)
-                    print("1. Cambiar Origen Fiscal (Boleta/Factura)")
-                    print("2. Actualizar Costo/Venta")
-                    sub_op = input("Seleccione: ")
-                    
-                    if sub_op == "1":
-                        fisc = "Factura" if input("Tipo (1: Bol / 2: Fac): ") == "2" else "Boleta"
-                        cursor.execute("UPDATE maestro SET tipo_documento = ? WHERE sku = ?", (fisc, sku))
-                        print("✅ Origen fiscal actualizado.")
-                    elif sub_op == "2":
-                        c = float(input("Nuevo Costo Neto: ") or existe[1])
-                        v = float(input("Nuevo Precio Venta: ") or existe[2])
-                        m = (v - c) / v if v > 0 else 0
-                        cursor.execute("UPDATE maestro SET costo_neto = ?, precio_venta = ?, margen = ? WHERE sku = ?", (c, v, m, sku))
-                        print("✅ Valores actualizados.")
-                
-                else:
-                    print("\n✨ DETECTADO COMO PRODUCTO NUEVO")
-                    nom = input("Nombre Producto: ")
-                    c = float(input("Costo Neto: ") or 0)
-                    v = float(input("Precio Venta: ") or 0)
+                if sub_op == "1":
                     fisc = "Factura" if input("Tipo (1: Bol / 2: Fac): ") == "2" else "Boleta"
+                    cursor.execute("UPDATE maestro SET tipo_documento = ? WHERE sku = ?", (fisc, sku))
+                    print("✅ Origen fiscal actualizado.")
+                elif sub_op == "2":
+                    c = float(input("Nuevo Costo Neto: ") or existe[1])
+                    v = float(input("Nuevo Precio Venta: ") or existe[2])
                     m = (v - c) / v if v > 0 else 0
-                    
-                    # Insertar en Maestro (Aquí va el margen y datos base)
-                    cursor.execute("""INSERT INTO maestro (sku, producto, costo_neto, precio_venta, margen, tipo_documento, comp_max) 
-                                   VALUES (?,?,?,?,?,?,?)""", (sku, nom, c, v, m, fisc, 10))
-                    
-                    # Insertar en Inventario (Solo stock y SKUs, sin comp_max aquí)
-                    cursor.execute("INSERT INTO inventario (sku, stock_actual) VALUES (?, 0)", (sku,))
-                    print(f"✅ {nom} bautizado e ingresado a inventario con stock 0.")
+                    cursor.execute("UPDATE maestro SET costo_neto = ?, precio_venta = ?, margen = ? WHERE sku = ?", (c, v, m, sku))
+                    print("✅ Valores actualizados.")
+            
+            else:
+                print("\n✨ DETECTADO COMO PRODUCTO NUEVO")
+                nom = input("Nombre Producto: ")
+                c = float(input("Costo Neto: ") or 0)
+                v = float(input("Precio Venta: ") or 0)
+                fisc = "Factura" if input("Tipo (1: Bol / 2: Fac): ") == "2" else "Boleta"
+                m = (v - c) / v if v > 0 else 0
                 
-                conn.commit()
+                cursor.execute("""INSERT INTO maestro (sku, producto, costo_neto, precio_venta, margen, tipo_documento, comp_max) 
+                               VALUES (?,?,?,?,?,?,?)""", (sku, nom, c, v, m, fisc, 10))
+                cursor.execute("INSERT INTO inventario (sku, stock_actual) VALUES (?, 0)", (sku,))
+                print(f"✅ {nom} bautizado e ingresado a inventario con stock 0.")
+            
+            conn.commit()
         pausar()
 
-    elif op == "3":
+    if op == "3":
         ejecutar_backup(forzar=True)
         pausar()
+
+    if op == "4":
+        sanear_base_datos()
+
+    elif op == "5":
+        ver_log_movimientos()
 
 def ejecutar_backup(forzar=False):
     fecha = datetime.now().strftime("%Y%m%d")
@@ -267,3 +394,18 @@ def ejecutar_backup(forzar=False):
             shutil.copy2(DB_NAME, archivo_bak)
             print(f"✅ Respaldo: {archivo_bak}")
     except Exception as e: print(f"⚠️ Error backup: {e}")
+
+def ver_historial_movimientos():
+    limpiar_pantalla()
+    print("📜 HISTORIAL RECIENTE DE MOVIMIENTOS")
+    print("-" * 80)
+    print(f"{'FECHA':16} | {'SKU':12} | {'TIPO':8} | {'CANT':4} | {'MOTIVO'}")
+    print("-" * 80)
+    
+    with obtener_conexion() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT fecha, sku, tipo, cantidad, motivo FROM historial ORDER BY id DESC LIMIT 15")
+        for r in cursor.fetchall():
+            print(f"{r[0]:16} | {r[1]:12} | {r[2]:8} | {r[3]:4} | {r[4]}")
+    print("-" * 80)
+    pausar()

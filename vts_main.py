@@ -61,9 +61,9 @@ def pantalla_inicio():
 ..........................-**####*+===---::::::::---=+***+-......................................::.
     """
     print(illidan_wide)
-    print("\n" + " " * 30 + "¡NO ESTÁN PREPARADOS PARA EL STOCK!")
+    print("\n" + " " * 30 + "INICIALIZANDO MOTOR DEL MARTILLO VIL")
     print("-" * 100)
-    time.sleep(5)
+    time.sleep(3)
 
 def menu():
     # 1. ARRANQUE

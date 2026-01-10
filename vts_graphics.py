@@ -1,4 +1,3 @@
-# vts_graphics.py
 import sqlite3
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -7,56 +6,61 @@ from vts_utils import limpiar_pantalla, pausar
 DB_NAME = "vts_mardum.db"
 
 def visualizar_analitica_macro():
-    """Genera un panel visual del estado del capital"""
+    """Genera un panel visual del estado del capital con blindaje contra Nones"""
     limpiar_pantalla()
     print("📊 CALCULANDO ANALÍTICA MACRO...")
 
     try:
         with sqlite3.connect(DB_NAME) as conn:
-            # 1. Capital por Sección (Para la Torta) - Ajustado a tu DB actual
-            query_seccion = """
-                SELECT m.Seccion, SUM(i.stock_actual * m.costo_neto) as valor
+            # Query unificada para evitar múltiples llamadas
+            query = """
+                SELECT IFNULL(m.Seccion, 'Sin Sección') as Seccion, 
+                       (i.stock_actual * m.costo_neto) as valor_item
                 FROM inventario i
                 JOIN maestro m ON i.sku = m.sku
                 WHERE i.stock_actual > 0
-                GROUP BY m.Seccion
             """
-            df_cap = pd.read_sql_query(query_seccion, conn)
+            df = pd.read_sql_query(query, conn)
 
-            # 2. Inversión Total por Sección (Para las Barras)
-            query_top = """
-                SELECT m.Seccion, SUM(i.stock_actual * m.costo_neto) as inversion
-                FROM inventario i
-                JOIN maestro m ON i.sku = m.sku
-                GROUP BY m.Seccion
-                ORDER BY inversion DESC
-            """
-            df_top = pd.read_sql_query(query_top, conn)
-
-        if df_cap.empty:
-            print("⚠️ No hay suficiente stock para generar gráficos.")
+        if df.empty:
+            print("⚠️ No hay datos de stock/costo para graficar.")
             pausar(); return
 
+        # --- BLINDAJE DE DATOS CON PANDAS ---
+        # 1. Agrupamos por Sección
+        df_grouped = df.groupby('Seccion')['valor_item'].sum().reset_index()
+        # 2. Ordenamos para que el gráfico de barras se vea bien
+        df_grouped = df_grouped.sort_values(by='valor_item', ascending=False)
+        # 3. Aseguramos que 'Seccion' sea string (Evita el error que tuviste)
+        df_grouped['Seccion'] = df_grouped['Seccion'].astype(str)
+
         # --- GENERACIÓN DEL DASHBOARD ---
-        plt.style.use('dark_background') # Opcional: queda más "pro" y cansa menos la vista
+        plt.style.use('dark_background')
         plt.rcParams.update({'font.size': 9})
         
-        # CORRECCIÓN AQUÍ: Creamos 1 fila y 2 columnas, asignando ax1 y ax2
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5)) 
-        fig.suptitle('📈 VTS ANALYTICS - ESTADO MACRO DE INVENTARIO', fontsize=14)
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 6)) 
+        fig.suptitle('📈 VTS ANALYTICS - ESTADO MACRO DE INVENTARIO', fontsize=14, color='orchid')
 
         # Gráfico 1: Torta de Capital
-        ax1.pie(df_cap['valor'], labels=df_cap['Seccion'], autopct='%1.1f%%', startangle=140, shadow=True)
+        colores = plt.cm.Paired(range(len(df_grouped))) # Paleta de colores variada
+        ax1.pie(df_grouped['valor_item'], 
+                labels=df_grouped['Seccion'], 
+                autopct='%1.1f%%', 
+                startangle=140, 
+                colors=colores)
         ax1.set_title("Distribución de Capital (%)")
 
         # Gráfico 2: Barras Inversión por Sección
-        ax2.barh(df_top['Seccion'], df_top['inversion'], color='orchid') # Color "Illidari" para las barras
-        ax2.set_xlabel('Valor en Pesos ($)')
-        ax2.set_title("Inversión Total ($)")
+        ax2.barh(df_grouped['Seccion'], df_grouped['valor_item'], color='orchid')
+        ax2.set_xlabel('Valor Neto ($)')
+        ax2.set_title("Inversión Total por Sección ($)")
         ax2.invert_yaxis() 
 
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Ajuste para que el título no tape nada
-        print("✅ Gráficos generados. Cierra la ventana para volver al VTS.")
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        print("✅ Panel generado exitosamente.")
+        # Sello de autoría en el dashboard
+        plt.figtext(0.99, 0.01, '© 2026 VTS - Inversiones Vacadari SpA.', 
+            horizontalalignment='right', fontsize=8, color='gray', alpha=0.5)
         plt.show()
 
     except Exception as e:
