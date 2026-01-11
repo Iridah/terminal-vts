@@ -1,59 +1,64 @@
-# VTS - Vacadari Terminal System v2.1.0 🐮
-Sistema de gestión de inventario táctico basado en terminal para control de stock, valorización y toma de decisiones ejecutivas. Ahora operando bajo arquitectura SQL Modular.
+# VTS - Vacadari Terminal System v2.5.0 (Edición Martillo Vil) 🐮🔨
+Sistema de gestión de inventario táctico. Evolucionado de un orquestador CLI a una Arquitectura de Contenedores con Dashboard Web Interactivo.
 
-## 🚀 Inicio Rápido 2026
-1. **Requisitos**: `pip install pandas matplotlib sqlite3`
-2. **Despliegue Inicial**: Ejecutar `python3 vts_setup.py` (Solo una vez para migrar desde CSV).
-3. **Ejecución**: Lanzar con `python3 vts_main.py`.
-4. **Respaldo**: El sistema genera `vts_mardum.db.bak` automáticamente al salir (Opción 0).
+## 🚀 Despliegue Docker (Enero 2026)
+Infraestructura: docker-compose up -d (Levanta el entorno Django + DB).
 
-## 🏗️ Arquitectura del Sistema: SQL Modular
-VTS ha dejado de ser un script lineal para convertirse en un ecosistema de módulos especializados:
+Succión de Datos: docker exec -it vts_martillo_vil python PORTAL/manage.py importar_csv (Procesamiento blindado de reportes VTS).
 
-* **`vts_main.py`**: Interfaz de usuario y orquestador central (Illidan 66px Engine).
-* **`vts_logic.py`**: Motor de reglas de negocio, cálculos de márgenes y gestión de stock.
-* **`vts_graphics.py`**: Dashboard visual de capital mediante Matplotlib.
-* **`database_manager.py`**: Capa de persistencia y gestión de conexión SQLite.
-* **`vts_utils.py`**: Kit de herramientas estéticas y validación de entrada.
+Acceso Web: http://localhost:9000
 
-## 🖥️ Interfaz v2.1 (Panel de Control)
-La nueva disposición separa el flujo operativo de la inteligencia de negocio:
-- **Flujo 1-4**: Operaciones de Bodega (Ingresos, Egresos, Búsquedas y Combos).
-- **Flujo 5-8**: Inteligencia de Mercado (Estrategias, Reposición, Administración y Analytics).
+## 🏗️ Arquitectura Evolucionada: Portal Web Django
+El sistema ahora opera como un servicio persistente dentro de Docker:
 
-## 🛡️ Seguridad y Resguardo
-- **Zero-Data Policy**: El `.gitignore` protege el modelo de negocios (confidencial).
-- **Integridad SQL**: Validación automática de SKUs en el arranque del sistema.
-- **Backup Unificado**: Respaldo local mediante `shutil.copy2` para asegurar la integridad binaria de la DB.
+vts_martillo_vil (Container): Entorno aislado en Python 3.12.
 
-## 📊 Flujo de Datos 2.1
-El sistema ahora integra la entrada manual y la analítica visual como pilares del ciclo de vida del inventario:
+dashboard/ (App Django): Cerebro del sistema. Gestiona la lógica de auditoría y visualización.
+
+importar_csv.py (Rimuru): Comando de gestión que neutraliza "Minas N2" (valores nulos y filas corruptas).
+
+Chart.js: Motor de renderizado para analítica de capital en tiempo real.
+
+## 📊 Ciclo de Vida del Inventario (Alimentación Dual)
+El sistema integra la carga masiva por script y el ajuste quirúrgico vía web:
 
 ```mermaid
-graph LR
-    subgraph "VTS Local (Actual)"
-    A[vts_logic.py] --> B[SQLite]
+graph TD
+    subgraph "Nivel 0: Entrada de Datos"
+        A[CSV Auditoría VTS] --> B(Script: importar_csv.py)
+        H[Auditor con Tablet/Web] --> I(GUI: actualizar_inventario)
     end
 
-    subgraph "VTS 2.4 (Django/Cloud)"
-    C[views.py] --> D[models.py]
-    D --> E[(PostgreSQL)]
-    F[templates/dash.html] --> C
+    subgraph "Nivel 1: El Cerebro (Django)"
+        B -->|Succión Blindada| C{Rimuru: Filtro N2}
+        I -->|POST Request| J{Ajuste Manual por SKU}
+        C -->|Si SKU es V-| D[Base de Datos: PostgreSQL/SQLite]
+        C -->|Si NaN| E[Asignar 0]
+        C -->|Si Costo 0| F[Buscar Historial]
+        J -->|Update SKU| D
     end
 
-    A -.->|Migración de Lógica| C
-    B -.->|Dump de Datos| E
+    subgraph "Nivel 2: Visualización"
+        D --> G[Dashboard: Chart.js]
+        G -->|Vista| K[Valor Costo Neto Inventario]
+        G -->|Vista| L[Avance de Auditoría]
+    end
+
+    style C fill:#f39c12,stroke:#333,stroke-width:2px
+    style J fill:#f39c12,stroke:#333,stroke-width:2px
+    style D fill:#2c3e50,color:#fff
 ```
 
-## 🛠️ Roadmap Actualizado (Enero 2026)
-[x] Migración total a arquitectura SQLite (Motor Relacional).
+## 🛡️ Protocolo de Resguardo y Regularización
+Costo Inteligente: Si un producto llega sin precio en el CSV, el sistema recupera el último costo histórico para no falsear el Valor Neto.
 
-[x] Consolidación de módulos Administrativos (Bridge/Editor/Bautismo).
+## 🛠️ Roadmap (Actualizado 11-01-2026)
+[x] Migración a Docker y Arquitectura Web Django.
 
-[x] Módulo de Gráficos: Visualización de capital por secciones mediante Matplotlib.
+[x] Implementación de Dashboard con Chart.js (Visualización de Capital Neto).
 
-[x] Sistema de Respaldo Local unificado.
+[x] Script de succión blindada contra fallos de datos (Minas N2).
 
-[ ] PRÓXIMO: Automatización de Catálogo de Ofertas (Marketing Generator).
+[ ] PRÓXIMO: Formulario de Ajuste Manual en la GUI (Regularización 11-01-26).
 
-[ ] PRÓXIMO: Cloud Sync - Sincronización automática de respaldos a la nube.
+[ ] PRÓXIMO: Filtros dinámicos por Sección en el Dashboard.
