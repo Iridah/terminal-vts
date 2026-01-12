@@ -24,10 +24,13 @@
             <span style="font-weight: 600;">Capital</span>
             <h2 style="font-size: 2.2em; margin: 10px 0;">${{ capital_total|floatformat:0 }}</h2>
         </div>
-        <div style="background: #7978E9; color: white; padding: 25px; border-radius: 20px;">
-            <span style="font-weight: 600;">Progreso</span>
-            <h2 style="font-size: 2.2em; margin: 10px 0;">{{ porcentaje_completado }}%</h2>
-        </div>
+        <div class="card bg-danger text-white">
+    <div class="card-body">
+        <p class="mb-4">Margen Crítico</p>
+        <p class="fs-30 mb-2">{{ alertas.perdidas }}</p>
+        <p>Productos en PÉRDIDA 💀</p>
+    </div>
+</div>
         <div style="background: #F3797E; color: white; padding: 25px; border-radius: 20px;">
             <span style="font-weight: 600;">Quiebres</span>
             <h2 style="font-size: 2.2em; margin: 10px 0;">{{ alertas_stock }}</h2>

@@ -1,0 +1,61 @@
+/* #static/dashboard/style.css */
+        :root {
+            --skydash-blue: #4B49AC;
+            --sidebar-width: 260px;
+        }
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #F5F7FF;
+            margin: 0;
+            display: flex; /* Layout de dos columnas: Sidebar | Content */
+        }
+        /* Sidebar Fijo y Estilizado */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: #FFFFFF;
+            height: 100vh;
+            position: fixed;
+            box-shadow: 0 0 15px rgba(0,0,0,0.05);
+            z-index: 1000;
+        }
+        .brand {
+            padding: 25px;
+            font-weight: 800;
+            font-size: 1.2em;
+            color: var(--skydash-blue);
+            border-bottom: 1px solid #eee;
+            letter-spacing: 1px;
+        }
+        .nav-menu { padding: 20px 0; }
+        .nav-item {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: #6C7383;
+            font-weight: 600;
+            transition: 0.3s;
+            gap: 15px; /* Espacio para el icono */
+        }
+        .nav-item i { font-size: 1.1em; width: 25px; text-align: center; }
+        .nav-item:hover { background: #F5F7FF; color: var(--skydash-blue); }
+        .nav-item.active {
+            background: var(--skydash-blue);
+            color: #FFFFFF;
+            border-radius: 0 25px 25px 0;
+            margin-right: 15px;
+        }
+        .modal-backdrop {
+            z-index: 1040 !important;
+        }
+        .modal {
+            z-index: 1050 !important;
+        }
+         /* EL ARREGLO MAESTRO: El contenedor principal */
+        .main-content {
+            margin-left: var(--sidebar-width); /* Empuja el contenido a la derecha */
+            width: calc(100% - var(--sidebar-width));
+            min-height: 100vh;
+            padding: 30px;
+            box-sizing: border-box;
+        }

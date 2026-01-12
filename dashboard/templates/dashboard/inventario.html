@@ -1,125 +1,130 @@
 {% extends 'dashboard/base.html' %}
 
 {% block content %}
-<div style="margin-bottom: 25px;">
-    <h1 style="color: #4B49AC; font-weight: 700; margin: 0;">
-        <i class="fa-solid fa-boxes-stacked"></i> La Forja (Inventario)
+<div class="mb-4">
+    <h1 style="color: #4B49AC; font-weight: 700;">
+        <i class="fa-solid fa-boxes-stacked"></i> La Forja
     </h1>
-    <p style="color: #6C7383;">Control físico y margen Illidari</p>
 </div>
-
-<div style="position: relative; margin-bottom: 25px;">
-    <div style="background: white; padding: 15px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); display: flex; gap: 15px; align-items: center;">
-        <i class="fa-solid fa-magnifying-glass" style="color: #4B49AC;"></i>
-        <input type="text" id="mainSearch" placeholder="Buscar SKU, nombre o sección..." 
-               style="flex: 1; border: none; outline: none; font-size: 1.1em; font-family: 'Nunito', sans-serif;"
-               onkeyup="filtrarTablaLocal()">
-        <button onclick="ejecutarBusquedaGlobal()" 
-                style="background: #4B49AC; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold;">
-            Buscar
-        </button>
-    </div>
-    <div id="suggestions" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 0 0 15px 15px; z-index: 100; box-shadow: 0 10px 20px rgba(0,0,0,0.1); display: none;">
+<div class="mb-3">
+    <div class="input-group">
+        <div class="input-group-prepend">
+            <span class="input-group-text bg-primary text-white"><i class="fa fa-search"></i></span>
         </div>
+        <input type="text" id="vtsSearch" class="form-control" placeholder="Escanear Código de Barras o buscar SKU/Producto...">
+    </div>
+</div>
+<div class="card shadow-sm border-0" style="border-radius: 15px; overflow: hidden;">
+    <div class="table-responsive">
+        <table class="table table-hover m-0">
+            <thead style="background: #F5F7FF; color: #4B49AC;">
+                <tr>
+                    <th>SKU</th>
+                    <th>Producto / Sección</th>
+                    <th class="text-center">Termómetro</th>
+                    <th class="text-center">Margen Illidari</th>
+                    <th>Ajuste Físico</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in auditorias %}
+                <tr>
+                    <td style="padding: 15px; font-weight: 700;">
+                        <a href="javascript:void(0);" 
+                           data-bs-toggle="modal"
+                           data-bs-target="#modal-{{ item.sku|slugify }}" 
+                           style="color: #4B49AC; text-decoration: underline;">
+                            {{ item.sku }}
+                        </a>
+                    </td>
+                    <td>
+                        <div style="font-weight: 600;">{{ item.producto }}</div>
+                        <div style="font-size: 0.8rem; color: #6c757d;">
+                            {{ item.seccion }} 
+                            {% if item.variante %}| <strong>Talla: {{ item.variante }}</strong>{% endif %}
+                            {% if item.codigo_barras %}| <i class="fa fa-barcode"></i> {{ item.codigo_barras }}{% endif %}
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        {% with s=item.get_stock_status %}
+                        <span class="badge" style="background: {{ s.color }}; color: white; border-radius: 8px;">{{ s.texto }}</span>
+                        {% endwith %}
+                    </td>
+                    <td class="text-center">
+                        {% with r=item.get_rentabilidad_status %}
+                        <span style="color: {{ r.color }}; font-weight: bold;"><i class="fa-solid {{ r.icon }}"></i> {{ r.texto }}</span>
+                        {% endwith %}
+                    </td>
+                    <td>
+                        <form action="{% url 'actualizar_inventario' item.sku %}" method="POST" class="d-flex" style="gap: 5px;">
+                            {% csrf_token %}
+                            <input type="number" name="cantidad" value="{{ item.inventario_real }}" class="form-control form-control-sm" style="width: 70px;">
+                            <button type="submit" class="btn btn-sm btn-primary" style="background-color: #4B49AC; border: none;">
+                                <i class="fa fa-save"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
-<script>
-function filtrarTablaLocal() {
-    let input = document.getElementById('mainSearch').value.toLowerCase();
-    let rows = document.querySelectorAll('tbody tr');
-    let suggestions = document.getElementById('suggestions');
-    let matches = [];
-
-    rows.forEach(row => {
-        let text = row.innerText.toLowerCase();
-        if (text.includes(input)) {
-            row.style.display = "";
-            // Guardar para sugerencias (máximo 5)
-            if (input.length > 1 && matches.length < 5) {
-                let sku = row.cells[0].innerText;
-                let nombre = row.cells[1].innerText;
-                matches.push({sku, nombre});
-            }
-        } else {
-            row.style.display = "none";
-        }
-    });
-
-    // Mostrar/Ocultar Sugerencias
-    if (matches.length > 0 && input.length > 1) {
-        suggestions.style.display = "block";
-        suggestions.innerHTML = matches.map(m => `
-            <div style="padding: 12px 20px; cursor: pointer; border-bottom: 1px solid #eee;" onclick="seleccionarSugerencia('${m.sku}')">
-                <i class="fa-solid fa-clock-rotate-left" style="color: #ccc; margin-right: 10px;"></i>
-                <strong>${m.sku}</strong> - ${m.nombre.substring(0, 30)}...
+{% for item in auditorias %}
+<div class="modal fade" id="modal-{{ item.sku|slugify }}" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div class="modal-header border-0 bg-light" style="border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title font-weight-bold" style="color: #4B49AC;">
+                    <i class="fa-solid fa-pen-to-square"></i> Maestro: {{ item.sku }}
+                </h5>
+                <button type="button" class="close" data-bs-dismiss="modal" style="background-color: #4B49AC; border: none;" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-        `).join('');
-    } else {
-        suggestions.style.display = "none";
-    }
-}
-
-function seleccionarSugerencia(sku) {
-    document.getElementById('mainSearch').value = sku;
-    filtrarTablaLocal();
-}
-
-function ejecutarBusquedaGlobal() {
-    let query = document.getElementById('mainSearch').value;
-    // Aquí redirigiremos a una nueva vista de Django en el futuro
-    window.location.href = `/inventario/buscar/?q=${query}`;
-}
-</script>
-
-<div style="background: white; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); overflow: hidden;">
-    <table style="width: 100%; border-collapse: collapse;">
-        <thead style="background: #F5F7FF; color: #4B49AC;">
-            <tr>
-                <th style="padding: 15px;">SKU</th>
-                <th style="padding: 15px;">Producto / Sección</th>
-                <th style="padding: 15px;">Termómetro Stock</th>
-                <th style="padding: 15px;">Margen Illidari</th>
-                <th style="padding: 15px;">Ajuste Físico</th>
-            </tr>
-        </thead>
-        <tbody style="color: #6C7383;">
-            {% for item in auditorias %}
-            <tr style="border-bottom: 1px solid #f8f9fa;">
-                <td style="padding: 15px; font-weight: 700; color: #2D2D2D;">{{ item.sku }}</td>
-                <td style="padding: 15px;">
-                    <div style="font-weight: 600; color: #444;">{{ item.producto }}</div>
-                    <small style="background: #E8E7FD; color: #4B49AC; padding: 2px 8px; border-radius: 4px;">{{ item.seccion }}</small>
-                </td>
-                
-                <td style="padding: 15px;">
-                    {% with status=item.get_stock_status %}
-                    <span style="background: {{ status.color }}; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.75em; font-weight: bold; display: inline-block; min-width: 80px; text-align: center;">
-                        {{ status.texto }}
-                    </span>
-                    {% endwith %}
-                </td>
-
-                <td style="padding: 15px;">
-                    {% with m_status=item.get_rentabilidad_status %}
-                    <span style="color: {{ m_status.color }}; font-weight: bold; font-size: 0.9em;">
-                        <i class="fa-solid {{ m_status.icon }}"></i> {{ m_status.texto }}
-                    </span>
-                    {% endwith %}
-                </td>
-
-                <td style="padding: 15px;">
-                    <form action="{% url 'actualizar_inventario' item.sku %}" method="POST" style="display: flex; gap: 8px;">
-                        {% csrf_token %}
-                        <input type="number" name="cantidad" value="{{ item.inventario_real }}" 
-                               style="width: 60px; padding: 5px; border: 1px solid #ddd; border-radius: 5px;">
-                        <button type="submit" style="background: #4B49AC; color: white; border: none; padding: 5px 12px; border-radius: 5px; cursor: pointer;">
-                            <i class="fa-solid fa-floppy-disk"></i>
-                        </button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            <form action="{% url 'actualizar_inventario' item.sku %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="form-group">
+                        <label class="small font-weight-bold text-uppercase" style="color: #6C7383;">Nombre del Producto</label>
+                        <input type="text" name="nombre" class="form-control form-control-lg" value="{{ item.producto }}" style="background: #F5F7FF; border: none;">
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <label class="small font-weight-bold text-uppercase" style="color: #6C7383;">Costo Neto ($)</label>
+                            <input type="number" step="0.01" name="costo" class="form-control" value="{{ item.precio_costo|stringformat:'.2f' }}">
+                        </div>
+                        <div class="col-6">
+                            <label class="small font-weight-bold text-uppercase" style="color: #6C7383;">Precio Venta ($)</label>
+                            <input type="number" step="0.01" name="precio" class="form-control" value="{{ item.precio_venta|stringformat:'.2f' }}">
+                        </div>
+                    </div>
+                    <div class="form-group mt-3">
+                        <label class="small font-weight-bold text-uppercase" style="color: #6C7383;">Sección / Categoría</label>
+                        <input type="text" name="seccion" class="form-control" value="{{ item.seccion }}">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4">
+                    <button type="submit" class="btn btn-primary btn-block p-3 font-weight-bold" style="border-radius: 12px; background: #4B49AC; box-shadow: 0 4px 15px rgba(75, 73, 172, 0.3);">
+                        GUARDAR CAMBIOS MAESTROS
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+{% endfor %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function(){
+  $("#vtsSearch").on("keyup", function() {
+    var value = $(this).val().toLowerCase();
+    $("table tbody tr").filter(function() {
+      // Busca en toda la fila (SKU, Nombre, Sección, Variante, Código de Barras)
+      $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+    });
+  });
+});
+</script>
 {% endblock %}

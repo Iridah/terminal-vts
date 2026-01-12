@@ -24,29 +24,21 @@ El sistema integra la carga masiva por script y el ajuste quirúrgico vía web:
 
 ```mermaid
 graph TD
-    subgraph "Nivel 0: Entrada de Datos"
-        A[CSV Auditoría VTS] --> B(Script: importar_csv.py)
-        H[Auditor con Tablet/Web] --> I(GUI: actualizar_inventario)
+    subgraph "Base de Datos (Módulo 4)"
+        A[AuditoriaVTS] -->|PK| B[SKU + Variante]
+        A --> C[Barcode Field]
     end
-
-    subgraph "Nivel 1: El Cerebro (Django)"
-        B -->|Succión Blindada| C{Rimuru: Filtro N2}
-        I -->|POST Request| J{Ajuste Manual por SKU}
-        C -->|Si SKU es V-| D[Base de Datos: PostgreSQL/SQLite]
-        C -->|Si NaN| E[Asignar 0]
-        C -->|Si Costo 0| F[Buscar Historial]
-        J -->|Update SKU| D
+    
+    subgraph "Motor de Lógica"
+        D[Venta Bruta] -->|/1.19| E[Venta Neta]
+        E --> F[Margen Illidari]
     end
-
-    subgraph "Nivel 2: Visualización"
-        D --> G[Dashboard: Chart.js]
-        G -->|Vista| K[Valor Costo Neto Inventario]
-        G -->|Vista| L[Avance de Auditoría]
+    
+    subgraph "Interfaz (La Forja)"
+        F --> G[Gauges de Color]
+        G --> H[Alertas Dashboard]
+        J[jQuery Search] -->|Filter| K[Tabla de Inventario]
     end
-
-    style C fill:#f39c12,stroke:#333,stroke-width:2px
-    style J fill:#f39c12,stroke:#333,stroke-width:2px
-    style D fill:#2c3e50,color:#fff
 ```
 
 ## 🛡️ Protocolo de Resguardo y Regularización

@@ -1,14 +1,28 @@
 from django.contrib import admin
-from .models import AuditoriaVTS
+from .models import AuditoriaVTS, HistorialStock
 
+admin.site.site_header = "VTS - MARTILLO VIL"
+admin.site.site_title = "Panel de Forja"
+admin.site.index_title = "Administración de Inventario" 
 @admin.register(AuditoriaVTS)
 class AuditoriaAdmin(admin.ModelAdmin):
     # Columnas que veremos en la lista
-    list_display = ('sku', 'producto', 'seccion', 'diferencia_unidades', 'perdida_monetaria', 'fecha_auditoria')
+    list_display = ('sku', 'codigo_barras', 'producto', 'variante', 'seccion', 'precio_venta')
     # Filtros laterales (Exprimiendo el limón)
-    list_filter = ('seccion', 'fecha_auditoria')
+    list_filter = ('seccion', 'documento_tipo')
     # Buscador
-    search_fields = ('sku', 'producto')
+    search_fields = ('sku', 'codigo_barras', 'producto')
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields['precio_costo'].label = "Costo Neto ($)"
+        form.base_fields['precio_venta'].label = "Precio Venta Bruto (IVA Inc.) ($)"
+        return form
+    # CSS Inyectado para cambiar colores (Dark/Purple)
+    class Media:
+        css = {
+            'all': ('dashboard/css/admin_custom.css',)
+        }
 
     # 🧮 Cálculo de unidades faltantes
     def diferencia_unidades(self, obj):
