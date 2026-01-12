@@ -59,6 +59,10 @@ Costo Inteligente: Si un producto llega sin precio en el CSV, el sistema recuper
 
 [x] Script de succión blindada contra fallos de datos (Minas N2).
 
-[ ] PRÓXIMO: Formulario de Ajuste Manual en la GUI (Regularización 11-01-26).
+[x] Formulario de Ajuste Manual en la GUI (Ficha de Producto funcional).
 
-[ ] PRÓXIMO: Filtros dinámicos por Sección en el Dashboard.
+[x] Motor de Búsqueda Dual (JS Instantáneo + Django Pro).
+
+[ ] PRÓXIMO: Filtros dinámicos por Sección en el Dashboard (Usando la lógica de categorías Skydash).
+
+[ ] PRÓXIMO: Logs de Sistema (Historial de quién ajustó qué SKU y cuándo).

@@ -1,64 +1,92 @@
 #dashboard/views.py
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import AuditoriaVTS
+from .models import AuditoriaVTS, Producto
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField
 from django.db.models.functions import Coalesce
 
 def actualizar_inventario(request, sku):
     if request.method == 'POST':
-        nuevo_valor = request.POST.get('cantidad', 0) # El 0 es por si viene vacío
-        # Buscamos el registro por SKU
-        item = AuditoriaVTS.objects.get(sku=sku)
-        item.inventario_real = nuevo_valor
-        # Al guardar, la fecha_auditoria se actualizará automáticamente a "ahora" (11-01-2026)
-        item.save()
-        messages.success(request, f"Inventario de {sku} actualizado correctamente.")
+        # 1. Obtenemos el dato y lo limpiamos
+        cantidad_raw = request.POST.get('cantidad')
+        
+        try:
+            # 2. Convertimos a entero (si está vacío, asumimos 0)
+            nueva_cantidad = int(cantidad_raw) if cantidad_raw else 0
+            
+            # 3. Buscamos y actualizamos
+            item = AuditoriaVTS.objects.get(sku=sku)
+            item.inventario_real = nueva_cantidad
+            
+            # 4. Forzamos el guardado
+            item.save()
+            
+            # Mensaje de éxito para confirmar en la UI
+            messages.success(request, f"Stock de {sku} actualizado a {nueva_cantidad}.")
+            
+        except Exception as e:
+            messages.error(request, f"Error al actualizar {sku}: {str(e)}")
+            
     return redirect('home')
 
 def dashboard_home(request):
     auditorias = AuditoriaVTS.objects.all()
-    
-    # 🥧 Lógica para el Gráfico de Torta: Estado de Auditoría
-    # Consideramos "completado" si inventario_real es > 0, y "pendiente" si es 0
-    completados = auditorias.exclude(inventario_real=0).count()
-    pendientes = auditorias.filter(inventario_real=0).count()
     total_registros = auditorias.count()
 
-    # Si no hay registros, para evitar divisiones por cero en el dashboard
-    porcentaje_completado = (completados / total_registros * 100) if total_registros > 0 else 0
-    porcentaje_pendiente = (pendientes / total_registros * 100) if total_registros > 0 else 0
+    # --- MÉTRICAS PARA TARJETAS SKYDASH ---
+    # Capital total basado en lo que el sistema dice que hay
+    capital_total = sum(item.precio_costo * item.stock_sistema for item in auditorias)
+    # Alertas: productos donde el físico es 0
+    alertas_stock = auditorias.filter(inventario_real=0).count()
 
-    # 📉 Lógica para el Gráfico de Barras: Pérdidas por Sección
-    # Calculamos la diferencia de dinero directamente en la consulta
-    # Usamos Coalesce para tratar los casos donde precio_costo pudiera ser nulo (aunque ya lo filtramos a 0 en la succión)
-    # y ExpressionWrapper para asegurar el tipo DecimalField en el cálculo.
-    perdidazos = auditorias.annotate(
-        # Calculamos la diferencia negativa, para que sea un valor absoluto de pérdida
-        unidades_perdidas=Coalesce(F('stock_sistema'), 0) - Coalesce(F('inventario_real'), 0),
-        # Calculamos la pérdida monetaria solo si unidades_perdidas > 0
-        plata_perdida=ExpressionWrapper(
-            F('unidades_perdidas') * Coalesce(F('precio_costo'), 0),
-            output_field=DecimalField(max_digits=12, decimal_places=2)
-        )
-    ).filter(
-        unidades_perdidas__gt=0 # Solo nos interesan las pérdidas
-    ).values('seccion').annotate(
-        total_perdido=Sum('plata_perdida')
-    ).order_by('-total_perdido') # Ordenamos de mayor a menor pérdida
+    # --- MÉTRICAS DE AVANCE (Gráfico Torta) ---
+    completados = auditorias.exclude(inventario_real=0).count()
+    pendientes = total_registros - completados
+    
+    porc_completado = (completados / total_registros * 100) if total_registros > 0 else 0
+    porc_pendiente = 100 - porc_completado
 
-    # Preparamos los datos para Chart.js
-    secciones_labels = [p['seccion'] for p in perdidazos]
-    total_perdido_data = [float(p['total_perdido']) for p in perdidazos] # Aseguramos float para JS
+    # --- MÉTRICAS POR SECCIÓN (Gráfico Barras) ---
+    capital_por_seccion = auditorias.values('seccion').annotate(
+        total_invertido=Sum(F('stock_sistema') * F('precio_costo'))
+    ).order_by('-total_invertido')
 
     context = {
+        'total_productos': total_registros,
+        'capital_total': capital_total,
+        'alertas_stock': alertas_stock,
         'completados': completados,
         'pendientes': pendientes,
-        'total_registros': total_registros,
-        'porcentaje_completado': round(porcentaje_completado, 2),
-        'porcentaje_pendiente': round(porcentaje_pendiente, 2),
-
-        'secciones_labels': secciones_labels,
-        'total_perdido_data': total_perdido_data,
+        'porcentaje_completado': round(porc_completado, 2),
+        'porcentaje_pendiente': round(porc_pendiente, 2),
+        'secciones_labels': [p['seccion'] for p in capital_por_seccion],
+        'total_perdido_data': [float(p['total_invertido'] or 0) for p in capital_por_seccion],
     }
     return render(request, 'dashboard/index.html', context)
+
+def inventario_list(request):
+    # Aquí va la tabla CRUD con buscadores
+    auditorias = AuditoriaVTS.objects.all().order_by('seccion')
+    return render(request, 'dashboard/inventario.html', {'auditorias': auditorias})
+
+def buscar_productos(request):
+    query = request.GET.get('q', '')
+    if query:
+        # Buscamos por SKU, Nombre o cualquier campo relevante
+        resultados = Producto.objects.filter(
+            nombre__icontains=query
+        ) | Producto.objects.filter(
+            sku__icontains=query
+        )
+    else:
+        resultados = []
+        
+    return render(request, 'resultados_busqueda.html', {
+        'resultados': resultados,
+        'query': query
+    })
+
+def detalle_producto(request, sku):
+    # Buscamos el producto por su SKU o ID
+    producto = get_object_or_404(AuditoriaVTS, sku=sku) 
+    return render(request, 'dashboard/ficha_producto.html', {'item': producto})

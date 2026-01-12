@@ -1,0 +1,125 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div style="margin-bottom: 25px;">
+    <h1 style="color: #4B49AC; font-weight: 700; margin: 0;">
+        <i class="fa-solid fa-boxes-stacked"></i> La Forja (Inventario)
+    </h1>
+    <p style="color: #6C7383;">Control físico y margen Illidari</p>
+</div>
+
+<div style="position: relative; margin-bottom: 25px;">
+    <div style="background: white; padding: 15px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); display: flex; gap: 15px; align-items: center;">
+        <i class="fa-solid fa-magnifying-glass" style="color: #4B49AC;"></i>
+        <input type="text" id="mainSearch" placeholder="Buscar SKU, nombre o sección..." 
+               style="flex: 1; border: none; outline: none; font-size: 1.1em; font-family: 'Nunito', sans-serif;"
+               onkeyup="filtrarTablaLocal()">
+        <button onclick="ejecutarBusquedaGlobal()" 
+                style="background: #4B49AC; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+            Buscar
+        </button>
+    </div>
+    <div id="suggestions" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 0 0 15px 15px; z-index: 100; box-shadow: 0 10px 20px rgba(0,0,0,0.1); display: none;">
+        </div>
+</div>
+
+<script>
+function filtrarTablaLocal() {
+    let input = document.getElementById('mainSearch').value.toLowerCase();
+    let rows = document.querySelectorAll('tbody tr');
+    let suggestions = document.getElementById('suggestions');
+    let matches = [];
+
+    rows.forEach(row => {
+        let text = row.innerText.toLowerCase();
+        if (text.includes(input)) {
+            row.style.display = "";
+            // Guardar para sugerencias (máximo 5)
+            if (input.length > 1 && matches.length < 5) {
+                let sku = row.cells[0].innerText;
+                let nombre = row.cells[1].innerText;
+                matches.push({sku, nombre});
+            }
+        } else {
+            row.style.display = "none";
+        }
+    });
+
+    // Mostrar/Ocultar Sugerencias
+    if (matches.length > 0 && input.length > 1) {
+        suggestions.style.display = "block";
+        suggestions.innerHTML = matches.map(m => `
+            <div style="padding: 12px 20px; cursor: pointer; border-bottom: 1px solid #eee;" onclick="seleccionarSugerencia('${m.sku}')">
+                <i class="fa-solid fa-clock-rotate-left" style="color: #ccc; margin-right: 10px;"></i>
+                <strong>${m.sku}</strong> - ${m.nombre.substring(0, 30)}...
+            </div>
+        `).join('');
+    } else {
+        suggestions.style.display = "none";
+    }
+}
+
+function seleccionarSugerencia(sku) {
+    document.getElementById('mainSearch').value = sku;
+    filtrarTablaLocal();
+}
+
+function ejecutarBusquedaGlobal() {
+    let query = document.getElementById('mainSearch').value;
+    // Aquí redirigiremos a una nueva vista de Django en el futuro
+    window.location.href = `/inventario/buscar/?q=${query}`;
+}
+</script>
+
+<div style="background: white; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); overflow: hidden;">
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead style="background: #F5F7FF; color: #4B49AC;">
+            <tr>
+                <th style="padding: 15px;">SKU</th>
+                <th style="padding: 15px;">Producto / Sección</th>
+                <th style="padding: 15px;">Termómetro Stock</th>
+                <th style="padding: 15px;">Margen Illidari</th>
+                <th style="padding: 15px;">Ajuste Físico</th>
+            </tr>
+        </thead>
+        <tbody style="color: #6C7383;">
+            {% for item in auditorias %}
+            <tr style="border-bottom: 1px solid #f8f9fa;">
+                <td style="padding: 15px; font-weight: 700; color: #2D2D2D;">{{ item.sku }}</td>
+                <td style="padding: 15px;">
+                    <div style="font-weight: 600; color: #444;">{{ item.producto }}</div>
+                    <small style="background: #E8E7FD; color: #4B49AC; padding: 2px 8px; border-radius: 4px;">{{ item.seccion }}</small>
+                </td>
+                
+                <td style="padding: 15px;">
+                    {% with status=item.get_stock_status %}
+                    <span style="background: {{ status.color }}; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.75em; font-weight: bold; display: inline-block; min-width: 80px; text-align: center;">
+                        {{ status.texto }}
+                    </span>
+                    {% endwith %}
+                </td>
+
+                <td style="padding: 15px;">
+                    {% with m_status=item.get_rentabilidad_status %}
+                    <span style="color: {{ m_status.color }}; font-weight: bold; font-size: 0.9em;">
+                        <i class="fa-solid {{ m_status.icon }}"></i> {{ m_status.texto }}
+                    </span>
+                    {% endwith %}
+                </td>
+
+                <td style="padding: 15px;">
+                    <form action="{% url 'actualizar_inventario' item.sku %}" method="POST" style="display: flex; gap: 8px;">
+                        {% csrf_token %}
+                        <input type="number" name="cantidad" value="{{ item.inventario_real }}" 
+                               style="width: 60px; padding: 5px; border: 1px solid #ddd; border-radius: 5px;">
+                        <button type="submit" style="background: #4B49AC; color: white; border: none; padding: 5px 12px; border-radius: 5px; cursor: pointer;">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

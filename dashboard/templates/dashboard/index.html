@@ -1,158 +1,54 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Martillo Vil - Dashboard VTS</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #2c3e50; /* Un azul oscuro, estilo terminal */
-            color: #ecf0f1; /* Letra blanca-gris claro */
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        h1 {
-            color: #f39c12; /* Naranja brillante para títulos */
-            margin-bottom: 30px;
-        }
-        .dashboard-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-            width: 100%;
-            max-width: 1200px;
-        }
-        .chart-card {
-            background-color: #34495e; /* Un gris más claro para las tarjetas */
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            width: 100%;
-            max-width: 550px;
-            box-sizing: border-box;
-        }
-        canvas {
-            max-height: 400px;
-        }
-    </style>
-</head>
-<body>
-    <h1>Panel de Control - Auditorías VTS</h1>
+{% extends 'dashboard/base.html' %}
 
-    <div class="dashboard-container">
-        <div class="chart-card">
-            <h2>Estado de la Auditoría General</h2>
-            <canvas id="estadoAuditoriaChart"></canvas>
-            <p>Total de Registros: {{ total_registros }}</p>
-        </div>
+{% block content %}
+<div style="margin-bottom: 30px;">
+    <h1 style="color: #2D2D2D; font-weight: 700; margin: 0;">Panel de Control</h1>
+    <p style="color: #6C7383;">Estado operativo del inventario VTS</p>
+</div>
 
-        <div class="chart-card">
-            <h2>Valor inventario por Sección</h2>
-            <canvas id="perdidasSeccionChart"></canvas>
-        </div>
+<div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 25px;">
+    
+    <div style="background: white; border-radius: 20px; padding: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.05);">
+        <h3 style="color: #4B49AC; margin-top: 0;"><i class="fa-solid fa-money-bill-trend-up"></i> Valor por Sección</h3>
+        <canvas id="perdidasSeccionChart" style="max-height: 300px;"></canvas>
     </div>
 
-    <script>
-        // Datos para el Gráfico de Torta
-        const estadoAuditoriaData = {
-            labels: ['Completados ({{ porcentaje_completado }}%)', 'Pendientes ({{ porcentaje_pendiente }}%)'],
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div style="background: #7DA0FA; color: white; padding: 25px; border-radius: 20px; position: relative; overflow: hidden;">
+            <i class="fa-solid fa-box" style="position: absolute; right: 10px; bottom: 10px; font-size: 3em; opacity: 0.2;"></i>
+            <span style="font-weight: 600;">Total SKU</span>
+            <h2 style="font-size: 2.2em; margin: 10px 0;">{{ total_productos }}</h2>
+        </div>
+        <div style="background: #4B49AC; color: white; padding: 25px; border-radius: 20px; position: relative; overflow: hidden;">
+            <i class="fa-solid fa-dollar-sign" style="position: absolute; right: 10px; bottom: 10px; font-size: 3em; opacity: 0.2;"></i>
+            <span style="font-weight: 600;">Capital</span>
+            <h2 style="font-size: 2.2em; margin: 10px 0;">${{ capital_total|floatformat:0 }}</h2>
+        </div>
+        <div style="background: #7978E9; color: white; padding: 25px; border-radius: 20px;">
+            <span style="font-weight: 600;">Progreso</span>
+            <h2 style="font-size: 2.2em; margin: 10px 0;">{{ porcentaje_completado }}%</h2>
+        </div>
+        <div style="background: #F3797E; color: white; padding: 25px; border-radius: 20px;">
+            <span style="font-weight: 600;">Quiebres</span>
+            <h2 style="font-size: 2.2em; margin: 10px 0;">{{ alertas_stock }}</h2>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Configuración rápida de gráficos con colores de la foto 1
+    new Chart(document.getElementById('perdidasSeccionChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ secciones_labels|safe }},
             datasets: [{
-                data: [{{ completados }}, {{ pendientes }}],
-                backgroundColor: ['#27ae60', '#e74c3c'], /* Verde para completado, Rojo para pendiente */
-                hoverOffset: 4
+                label: 'Capital en Sistema',
+                data: {{ total_perdido_data|safe }},
+                backgroundColor: '#7DA0FA',
+                borderRadius: 8
             }]
-        };
-
-        const estadoAuditoriaConfig = {
-            type: 'doughnut',
-            data: estadoAuditoriaData,
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            color: '#ecf0f1' // Color de las etiquetas de la leyenda
-                        }
-                    },
-                    title: {
-                        display: true,
-                        text: 'Avance de la Auditoría',
-                        color: '#f39c12' // Color del título del gráfico
-                    }
-                }
-            }
-        };
-
-        new Chart(
-            document.getElementById('estadoAuditoriaChart'),
-            estadoAuditoriaConfig
-        );
-
-        // Datos para el Gráfico de Barras
-        const perdidasSeccionData = {
-            labels: {{ secciones_labels|safe }}, /* Los nombres de las secciones */
-            datasets: [{
-                label: 'Valor inventario ($)',
-                data: {{ total_perdido_data|safe }}, /* Los valores de pérdida */
-                backgroundColor: '#e67e22', /* Naranja para las barras */
-                borderColor: '#d35400',
-                borderWidth: 1
-            }]
-        };  
-
-        const perdidasSeccionConfig = {
-            type: 'bar',
-            data: perdidasSeccionData,
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            color: '#ecf0f1'
-                        }
-                    },
-                    title: {
-                        display: true,
-                        text: 'Valor inventario por Sección',
-                        color: '#f39c12'
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            color: '#ecf0f1' // Color de las etiquetas del eje X
-                        },
-                        grid: {
-                            color: 'rgba(236, 240, 241, 0.1)' // Color tenue de las líneas de la grilla
-                        }
-                    },
-                    y: {
-                        ticks: {
-                            color: '#ecf0f1', // Color de las etiquetas del eje Y
-                            callback: function(value, index, values) {
-                                return '$' + value.toLocaleString(); // Formato de moneda
-                            }
-                        },
-                        grid: {
-                            color: 'rgba(236, 240, 241, 0.1)'
-                        }
-                    }
-                }
-            }
-        };
-
-        new Chart(
-            document.getElementById('perdidasSeccionChart'),
-            perdidasSeccionConfig
-        );
-    </script>
-</body>
-</html>
+        },
+        options: { plugins: { legend: { display: false } } }
+    });
+</script>
+{% endblock %}
