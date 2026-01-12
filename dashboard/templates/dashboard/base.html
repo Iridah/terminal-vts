@@ -89,8 +89,8 @@
             <a href="#" class="nav-item">
                 <i class="fa-solid fa-chart-line"></i> Análisis Pro
             </a>
-            <a href="#" class="nav-item">
-                <i class="fa-solid fa-file-invoice"></i> Logs de Sistema
+            <a href="{% url 'lista_logs' %}" class="nav-item {% if request.resolver_match.url_name == 'lista_logs' %}active{% endif %}">
+                <i class="fa-solid fa-clock-rotate-left"></i> Logs de Sistema
             </a>
         </nav>
     </aside>

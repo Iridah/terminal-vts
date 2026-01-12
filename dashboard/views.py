@@ -1,33 +1,42 @@
 #dashboard/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import AuditoriaVTS, Producto
+from .models import AuditoriaVTS, HistorialStock
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField
 from django.db.models.functions import Coalesce
 
 def actualizar_inventario(request, sku):
     if request.method == 'POST':
-        # 1. Obtenemos el dato y lo limpiamos
-        cantidad_raw = request.POST.get('cantidad')
-        
         try:
-            # 2. Convertimos a entero (si está vacío, asumimos 0)
-            nueva_cantidad = int(cantidad_raw) if cantidad_raw else 0
+            item = get_object_or_404(AuditoriaVTS, sku=sku)
+            stock_viejo = item.inventario_real
             
-            # 3. Buscamos y actualizamos
-            item = AuditoriaVTS.objects.get(sku=sku)
-            item.inventario_real = nueva_cantidad
-            
-            # 4. Forzamos el guardado
+            # 1. Captura limpia de datos
+            nueva_cantidad = request.POST.get('cantidad', 0)
+            nuevo_costo = request.POST.get('costo', item.precio_costo)
+            nuevo_precio = request.POST.get('precio', item.precio_venta)
+
+            # 2. Guardado ÚNICO y Blindado
+            item.inventario_real = int(nueva_cantidad)
+            item.precio_costo = float(nuevo_costo)
+            item.precio_venta = float(nuevo_precio)
             item.save()
             
-            # Mensaje de éxito para confirmar en la UI
-            messages.success(request, f"Stock de {sku} actualizado a {nueva_cantidad}.")
+            # 3. CREACIÓN DEL LOG (Una sola vez)
+            HistorialStock.objects.create(
+                sku=sku,
+                producto=item.producto,
+                stock_anterior=stock_viejo,
+                stock_nuevo=item.inventario_real,
+                usuario=request.user.username if request.user.is_authenticated else "Admin_VTS"
+            )
+            
+            messages.success(request, f"✅ {sku} actualizado y registrado en Historial.")
             
         except Exception as e:
-            messages.error(request, f"Error al actualizar {sku}: {str(e)}")
+            messages.error(request, f"❌ Error crítico al actualizar {sku}: {str(e)}")
             
-    return redirect('home')
+    return redirect('inventario')
 
 def dashboard_home(request):
     auditorias = AuditoriaVTS.objects.all()
@@ -72,16 +81,16 @@ def inventario_list(request):
 def buscar_productos(request):
     query = request.GET.get('q', '')
     if query:
-        # Buscamos por SKU, Nombre o cualquier campo relevante
-        resultados = Producto.objects.filter(
-            nombre__icontains=query
-        ) | Producto.objects.filter(
+        # Filtramos SOLO usando AuditoriaVTS y campos que existen
+        resultados = AuditoriaVTS.objects.filter(
+            producto__icontains=query
+        ) | AuditoriaVTS.objects.filter(
             sku__icontains=query
         )
     else:
         resultados = []
         
-    return render(request, 'resultados_busqueda.html', {
+    return render(request, 'dashboard/resultados_busqueda.html', {
         'resultados': resultados,
         'query': query
     })
@@ -90,3 +99,21 @@ def detalle_producto(request, sku):
     # Buscamos el producto por su SKU o ID
     producto = get_object_or_404(AuditoriaVTS, sku=sku) 
     return render(request, 'dashboard/ficha_producto.html', {'item': producto})
+
+def lista_logs(request):
+    logs = HistorialStock.objects.all()[:50] # Últimos 50 movimientos
+    return render(request, 'dashboard/logs.html', {'logs': logs})
+
+def home(request):
+    total = AuditoriaVTS.objects.count()
+    # Consideramos 'auditado' si el inventario_real es diferente de -1 (o lo que definas)
+    auditados = AuditoriaVTS.objects.filter(inventario_real__gte=0).count()
+    pendientes = total - auditados
+    
+    context = {
+        'total': total,
+        'auditados': auditados,
+        'pendientes': pendientes,
+        'capital_total': sum(i.inventario_real * i.costo_neto for i in AuditoriaVTS.objects.all())
+    }
+    return render(request, 'dashboard/index.html', context)

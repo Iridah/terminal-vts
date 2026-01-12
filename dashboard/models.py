@@ -10,8 +10,8 @@ class AuditoriaVTS(models.Model):
     # Valores numéricos (Dinero y Unidades)
     stock_sistema = models.IntegerField()
     inventario_real = models.IntegerField()
-    precio_costo = models.DecimalField(max_digits=12, decimal_places=2)
-    precio_venta = models.DecimalField(max_digits=12, decimal_places=2)
+    precio_costo = models.DecimalField(max_digits=12, decimal_places=2, default=0.00) # Usaremos este
+    precio_venta = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     
     # Tipo de documento
     documento_tipo = models.CharField(max_length=20, choices=[('BOLETA', 'Boleta'), ('FACTURA', 'Factura')])
@@ -62,9 +62,9 @@ class AuditoriaVTS(models.Model):
             return {'color': '#6C7383', 'texto': 'ERROR'}
 
     def get_rentabilidad_status(self):
-        """Calcula el margen Illidari."""
+        """Calcula el margen Illidari usando el precio_costo real."""
         try:
-            m = float(self.margen) # Asegúrate de tener el campo 'margen' en el modelo
+            m = float(self.margen_valor) # Usamos la property que ya calcula (Venta - Costo)/Venta
             if m < 0.05: return {'color': '#714B23', 'texto': 'PÉRDIDA', 'icon': 'fa-skull'}
             if m < 0.14: return {'color': '#F3797E', 'texto': 'SOBREVIVENCIA', 'icon': 'fa-triangle-exclamation'}
             if m < 0.22: return {'color': '#7978E9', 'texto': 'NEUTRA', 'icon': 'fa-minus'}
@@ -72,11 +72,29 @@ class AuditoriaVTS(models.Model):
             return {'color': '#A435F0', 'texto': 'ILLIDARI', 'icon': 'fa-bolt'}
         except:
             return {'color': '#6C7383', 'texto': 'SIN DATOS', 'icon': 'fa-question'}
+        
+    @property
+    def margen_calculado(self):
+        """Calcula el margen real para el termómetro."""
+        if self.precio_venta > 0:
+            return (self.precio_venta - self.costo_neto) / self.precio_venta
+        return 0
     
     class Meta:
         verbose_name = "Auditoría VTS"
         verbose_name_plural = "Auditorías VTS"
         ordering = ['-fecha_auditoria'] # Las más recientes primero
+
+class HistorialStock(models.Model):
+    sku = models.CharField(max_length=50)
+    producto = models.CharField(max_length=200)
+    stock_anterior = models.IntegerField()
+    stock_nuevo = models.IntegerField()
+    fecha_ajuste = models.DateTimeField(auto_now_add=True)
+    usuario = models.CharField(max_length=100, default="Admin_VTS") # Por ahora manual
+
+    class Meta:
+        ordering = ['-fecha_ajuste'] # Lo más reciente primero
 
     def __str__(self):
         return f"{self.sku} - {self.producto}"
