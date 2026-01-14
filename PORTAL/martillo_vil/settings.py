@@ -11,21 +11,25 @@ https://docs.djangoproject.com/en/dev/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Forzamos la carga del .env buscando la ruta absoluta
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-e&a-4t!1sms++0(gn4sf^m_p1p1h=*&k57q3&j-$^hjw1p6lfv'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+# Reparación con "Plan B" por si el .env falla
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-e&a-4t!1sms++0(gn4sf^m_p1p1h=*&k57q3&j-$^hjw1p6lfv')
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
+allowed_hosts_raw = os.getenv('ALLOWED_HOSTS')
+if allowed_hosts_raw:
+    ALLOWED_HOSTS = allowed_hosts_raw.split(',')
+else:
+    ALLOWED_HOSTS = ['192.168.7.50', 'localhost', '127.0.0.1', '0.0.0.0']
 
 
 # Application definition
@@ -116,3 +120,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/dev/howto/static-files/
 
 STATIC_URL = 'static/'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
