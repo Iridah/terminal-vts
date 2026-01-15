@@ -1,61 +1,136 @@
-/* #static/dashboard/style.css */
-        :root {
-            --skydash-blue: #4B49AC;
-            --sidebar-width: 260px;
-        }
-        body {
-            font-family: 'Nunito', sans-serif;
-            background-color: #F5F7FF;
-            margin: 0;
-            display: flex; /* Layout de dos columnas: Sidebar | Content */
-        }
-        /* Sidebar Fijo y Estilizado */
-        .sidebar {
-            width: var(--sidebar-width);
-            background: #FFFFFF;
-            height: 100vh;
-            position: fixed;
-            box-shadow: 0 0 15px rgba(0,0,0,0.05);
-            z-index: 1000;
-        }
-        .brand {
-            padding: 25px;
-            font-weight: 800;
-            font-size: 1.2em;
-            color: var(--skydash-blue);
-            border-bottom: 1px solid #eee;
-            letter-spacing: 1px;
-        }
-        .nav-menu { padding: 20px 0; }
-        .nav-item {
-            padding: 15px 25px;
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            color: #6C7383;
-            font-weight: 600;
-            transition: 0.3s;
-            gap: 15px; /* Espacio para el icono */
-        }
-        .nav-item i { font-size: 1.1em; width: 25px; text-align: center; }
-        .nav-item:hover { background: #F5F7FF; color: var(--skydash-blue); }
-        .nav-item.active {
-            background: var(--skydash-blue);
-            color: #FFFFFF;
-            border-radius: 0 25px 25px 0;
-            margin-right: 15px;
-        }
-        .modal-backdrop {
-            z-index: 1040 !important;
-        }
-        .modal {
-            z-index: 1050 !important;
-        }
-         /* EL ARREGLO MAESTRO: El contenedor principal */
-        .main-content {
-            margin-left: var(--sidebar-width); /* Empuja el contenido a la derecha */
-            width: calc(100% - var(--sidebar-width));
-            min-height: 100vh;
-            padding: 30px;
-            box-sizing: border-box;
-        }
+/* #static/dashboard/style.css - Refactorizado v2.6 */
+
+:root {
+    --skydash-blue: #4B49AC;
+    --skydash-light: #7da7fb;
+    --sidebar-width-full: 260px;
+    --sidebar-width-compact: 80px;
+    --bg-body: #F5F7FF;
+    --glass-white: rgba(255, 255, 255, 0.9);
+}
+
+body {
+    font-family: 'Nunito', sans-serif;
+    background-color: var(--bg-body);
+    margin: 0;
+    display: flex;
+}
+
+/* --- SIDEBAR MAESTRO (Inteligente) --- */
+.sidebar {
+    width: var(--sidebar-width-compact);
+    background: var(--glass-white);
+    height: 100vh;
+    position: fixed;
+    box-shadow: 4px 0 15px rgba(0,0,0,0.05);
+    z-index: 1045; /* Justo debajo del modal-backdrop */
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Expansión al hacer hover */
+.sidebar:hover {
+    width: var(--sidebar-width-full);
+}
+
+.brand {
+    padding: 25px;
+    font-weight: 800;
+    font-size: 1.2em;
+    color: var(--skydash-blue);
+    border-bottom: 1px solid #eee;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* Menú de Navegación */
+.nav-menu { padding: 20px 0; flex-grow: 1; }
+
+.nav-item {
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #6C7383;
+    font-weight: 600;
+    transition: 0.3s;
+    white-space: nowrap;
+}
+
+.nav-item i {
+    min-width: 40px; /* Centra el icono en modo compacto */
+    font-size: 1.3rem;
+    text-align: center;
+}
+
+.nav-item span {
+    opacity: 0;
+    margin-left: 15px;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.sidebar:hover .nav-item span {
+    opacity: 1;
+}
+
+.nav-item:hover { background: #F5F7FF; color: var(--skydash-blue); }
+
+.nav-item.active {
+    background: var(--skydash-blue);
+    color: #FFFFFF;
+    border-radius: 0 25px 25px 0;
+    margin-right: 10px;
+}
+
+/* --- CONTENIDO PRINCIPAL --- */
+.main-content {
+    margin-left: var(--sidebar-width-compact);
+    width: calc(100% - var(--sidebar-width-compact));
+    min-height: 100vh;
+    padding: 30px;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+/* --- UI COMPONENTS (Glassmorphism) --- */
+.card {
+    border: none;
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(75, 73, 172, 0.15);
+}
+
+/* Miniatura Mejorada (Módulo 6 Fix) */
+.img-thumbnail-vts {
+    width: 60px;
+    height: 60px;
+    object-fit: contain; /* No deforma la imagen */
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eee;
+    padding: 4px;
+}
+
+.sku-badge {
+    background: #f0f2ff;
+    color: var(--skydash-blue);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
+}
+
+/* Modales y Z-Index */
+.modal-backdrop { z-index: 1050 !important; }
+.modal { z-index: 1060 !important; }
+.modal-content { border-radius: 20px !important; border: none; }
