@@ -1,17 +1,22 @@
 #dashboard/models.py
+import os
 from django.db import models
-
+from PIL import Image
+from io import BytesIO
+from django.core.files.base import ContentFile
 class AuditoriaVTS(models.Model):
-    sku = models.CharField(max_length=40, primary_key=True)
+    sku = models.CharField(max_length=50, primary_key=True)
     codigo_barras = models.CharField(max_length=100, blank=True, null=True, verbose_name="Código de Barras")
     producto = models.CharField(max_length=200)
     seccion = models.CharField(max_length=100)
-    variante = models.CharField(max_length=10, blank=True, null=True)
-    
+    variante = models.CharField(max_length=50, blank=True, null=True, verbose_name="Variante/Color")
+    imagen = models.ImageField(upload_to='productos/', blank=True, null=True, verbose_name="Foto del Producto")
+
     stock_sistema = models.IntegerField(default=0)
-    # ELIMINADA LA DUPLICACIÓN: Dejamos solo uno con default
     inventario_real = models.IntegerField(default=0)
-    
+    # NUEVO: Registro de Aporte Hogar acumulado
+    aporte_hogar_total = models.IntegerField(default=0)
+
     precio_costo = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     precio_venta = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     
@@ -39,13 +44,16 @@ class AuditoriaVTS(models.Model):
 
     def get_stock_status(self):
         try:
-            actual = float(self.inventario_real)
-            sistema = float(self.stock_sistema) or 1.0
-            pct = (actual / sistema) * 100
-            if actual <= 0: return {'color': '#714B23', 'texto': 'QUIEBRE'}
-            if pct <= 25: return {'color': '#F3797E', 'texto': 'CRÍTICO'}
-            if pct <= 60: return {'color': '#7978E9', 'texto': 'REVISAR'}
-            return {'color': '#71c016', 'texto': 'ÓPTIMO'}
+            actual = int(self.inventario_real)
+            if actual <= 0: 
+                return {'color': '#714B23', 'texto': 'QUIEBRE'} # El marrón oscuro de quiebre
+            if actual == 1: 
+                return {'color': '#F3797E', 'texto': 'ÚLTIMA UNIDAD'} # Alerta roja crítica
+            if actual <= 3: 
+                return {'color': '#FF9900', 'texto': 'STOCK BAJO'} # Naranja preventivo
+            if actual < 5: 
+                return {'color': '#7978E9', 'texto': 'REVISAR'} # Tu morado de revisión
+            return {'color': '#71c016', 'texto': 'ÓPTIMO'} # Verde estable
         except:
             return {'color': '#6C7383', 'texto': 'ERROR'}
         
@@ -70,7 +78,29 @@ class AuditoriaVTS(models.Model):
         except:
             return {'color': '#6C7383', 'texto': 'SIN DATOS', 'icon': 'fa-question'}
 
+    def save(self, *args, **kwargs):
+        if self.imagen and hasattr(self.imagen, 'file'):
+            # 1. Abrir la imagen subida
+            img = Image.open(self.imagen)
+            
+            # 2. Convertir a RGB (necesario para JPG/PNG a WebP)
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            
+            # 3. Redimensionar proporcionalmente (Max 800px para la tablet)
+            output_size = (800, 800)
+            img.thumbnail((800, 800), Image.LANCZOS)
+            
+            # 4. Guardar en un buffer como WebP
+            buffer = BytesIO()
+            img.save(buffer, format="WEBP", quality=80) # 80 es el punto dulce calidad/peso
+            buffer.seek(0)
+            
+            # 5. Cambiar el nombre del archivo a .webp
+            nuevo_nombre = os.path.splitext(self.imagen.name)[0] + ".webp"
+            self.imagen.save(nuevo_nombre, ContentFile(buffer.read()), save=False)
 
+        super().save(*args, **kwargs)
 
 
 
@@ -91,3 +121,16 @@ class HistorialStock(models.Model):
     stock_nuevo = models.IntegerField()
     fecha_ajuste = models.DateTimeField(auto_now_add=True)
     usuario = models.CharField(max_length=100, default="Admin_VTS")
+
+class LogRetirosDeducibles(models.Model):
+    sku = models.ForeignKey(AuditoriaVTS, on_delete=models.CASCADE)
+    cantidad = models.IntegerField()
+    fecha = models.DateTimeField(auto_now_add=True)
+    motivo = models.CharField(max_length=100, default="Aporte Hogar")
+
+    def save(self, *args, **kwargs):
+        # Al guardar el retiro, descontamos del inventario real automáticamente
+        self.sku.inventario_real -= self.cantidad
+        self.sku.aporte_hogar_total += self.cantidad
+        self.sku.save()
+        super().save(*args, **kwargs)

@@ -1,9 +1,10 @@
 from django.contrib import admin
-from .models import AuditoriaVTS, HistorialStock
+from .models import AuditoriaVTS, HistorialStock, LogRetirosDeducibles
 
 admin.site.site_header = "VTS - MARTILLO VIL"
 admin.site.site_title = "Panel de Forja"
 admin.site.index_title = "Administración de Inventario" 
+
 @admin.register(AuditoriaVTS)
 class AuditoriaAdmin(admin.ModelAdmin):
     # Columnas que veremos en la lista
@@ -38,3 +39,9 @@ class AuditoriaAdmin(admin.ModelAdmin):
             return f"${perdida:,.0f}" # Formato de dinero
         return "$0"
     perdida_monetaria.short_description = "Pérdida ($)"
+
+@admin.register(LogRetirosDeducibles)
+class LogRetirosAdmin(admin.ModelAdmin):
+    list_display = ('sku', 'cantidad', 'fecha', 'motivo')
+    list_filter = ('fecha', 'motivo')
+    search_fields = ('sku__sku', 'sku__producto')

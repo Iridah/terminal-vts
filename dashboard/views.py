@@ -1,7 +1,11 @@
 #dashboard/views.py
+import json
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import AuditoriaVTS, HistorialStock
+# Modifica tu línea 8 actual:
+from .models import AuditoriaVTS, HistorialStock, LogRetirosDeducibles # <--- Añade esto
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField
 from django.db.models.functions import Coalesce
 
@@ -18,6 +22,11 @@ def actualizar_inventario(request, sku):
             nuevo_costo = request.POST.get('costo')
             nuevo_precio = request.POST.get('precio')
             nuevo_nombre = request.POST.get('nombre')
+
+            # --- INYECCIÓN SEGURA PARA IMÁGENES ---
+            if 'imagen' in request.FILES:
+                item.imagen = request.FILES['imagen']
+            # --------------------------------------
 
             # 2. Actualizar solo si el dato viene en el POST (evita sobreescribir con None)
             if nuevo_nombre: item.producto = nuevo_nombre
@@ -47,11 +56,12 @@ def dashboard_home(request):
     auditorias = AuditoriaVTS.objects.all()
     total_registros = auditorias.count()
 
-    # --- MÉTRICAS PARA TARJETAS SKYDASH ---
-    # Capital total basado en lo que el sistema dice que hay
+# --- MÉTRICAS PARA TARJETAS SKYDASH ---
     capital_total = sum(item.precio_costo * item.stock_sistema for item in auditorias)
-    # Alertas: productos donde el físico es 0
-    alertas_stock = auditorias.filter(inventario_real=0).count()
+    
+    # 1. MODIFICACIÓN: Guardamos los objetos en una variable para el Radar
+    productos_quiebre = auditorias.filter(inventario_real=0)
+    alertas_stock = productos_quiebre.count()
 
     # --- MÉTRICAS DE AVANCE (Gráfico Torta) ---
     completados = auditorias.exclude(inventario_real=0).count()
@@ -69,6 +79,15 @@ def dashboard_home(request):
         'total_productos': total_registros,
         'capital_total': capital_total,
         'alertas_stock': alertas_stock,
+        'completados': completados,
+        'pendientes': pendientes,
+        'porcentaje_completado': round(porc_completado, 2),
+        'porcentaje_pendiente': round(porc_pendiente, 2),
+        'secciones_labels': [p['seccion'] for p in capital_por_seccion],
+        'total_perdido_data': [float(p['total_invertido'] or 0) for p in capital_por_seccion],
+        # 2. CONEXIÓN: Pasamos la lista al HTML
+        'productos_quiebre': productos_quiebre, 
+        
         'completados': completados,
         'pendientes': pendientes,
         'porcentaje_completado': round(porc_completado, 2),
@@ -109,7 +128,6 @@ def lista_logs(request):
     logs = HistorialStock.objects.all()[:50] # Últimos 50 movimientos
     return render(request, 'dashboard/logs.html', {'logs': logs})
 
-# dashboard/views.py
 def inventario_view(request):
     auditorias = AuditoriaVTS.objects.all()
     
@@ -136,3 +154,36 @@ def inventario_view(request):
         'auditorias': auditorias,
         'alertas': alertas
     })
+
+@csrf_exempt
+def registrar_aporte_hogar(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        try:
+            producto = AuditoriaVTS.objects.get(sku=data['sku'])
+            cantidad = int(data['cantidad'])
+            
+            # Creamos el log (el modelo ya descuenta el stock en su .save())
+            LogRetirosDeducibles.objects.create(
+                sku=producto,
+                cantidad=cantidad,
+                motivo="Aporte Hogar (Retiro Tablet)"
+            )
+            
+            return JsonResponse({
+                'status': 'success', 
+                'nuevo_stock': producto.inventario_real
+            })
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+
+def analisis_pro(request):
+    secciones = AuditoriaVTS.objects.values_list('seccion', flat=True).distinct()
+    analisis_data = {}
+
+    for seccion in secciones:
+        # Buscamos los 5 que más han variado o tienen mejor margen
+        top_5 = AuditoriaVTS.objects.filter(seccion=seccion).order_by('-precio_venta')[:5]
+        analisis_data[seccion] = top_5
+
+    return render(request, 'dashboard/analisis_pro.html', {'analisis_data': analisis_data})

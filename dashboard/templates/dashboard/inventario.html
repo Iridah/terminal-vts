@@ -76,16 +76,33 @@
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
             <div class="modal-header border-0 bg-light" style="border-radius: 20px 20px 0 0;">
-                <h5 class="modal-title font-weight-bold" style="color: #4B49AC;">
+                <h5 class="modal-title font-weight-bold modal-sku-reference" 
+                    data-sku="{{ item.sku }}" 
+                    style="color: #4B49AC;">
                     <i class="fa-solid fa-pen-to-square"></i> Maestro: {{ item.sku }}
                 </h5>
                 <button type="button" class="close" data-bs-dismiss="modal" style="background-color: #4B49AC; border: none;" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form action="{% url 'actualizar_inventario' item.sku %}" method="POST">
+            <form action="{% url 'actualizar_inventario' item.sku %}" method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-body p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="me-3">
+                            {% if item.imagen %}
+                                <img src="{{ item.imagen.url }}" class="img-thumbnail-vts" style="width: 80px; height: 80px;">
+                            {% else %}
+                                <div class="img-thumbnail-vts d-flex align-items-center justify-content-center bg-light" style="width: 80px; height: 80px; border-radius: 15px;">
+                                    <i class="fa-solid fa-box text-muted fa-2x"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                            <label class="small font-weight-bold text-uppercase text-muted">Imagen del Producto (WebP)</label>
+                            <input type="file" name="imagen" class="form-control form-control-sm" accept="image/*" style="border: 1px dashed #4B49AC;">
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label class="small font-weight-bold text-uppercase" style="color: #6C7383;">Nombre del Producto</label>
                         <input type="text" name="nombre" class="form-control form-control-lg" value="{{ item.producto }}" style="background: #F5F7FF; border: none;">
@@ -105,9 +122,13 @@
                         <input type="text" name="seccion" class="form-control" value="{{ item.seccion }}">
                     </div>
                 </div>
-                <div class="modal-footer border-0 p-4">
-                    <button type="submit" class="btn btn-primary btn-block p-3 font-weight-bold" style="border-radius: 12px; background: #4B49AC; box-shadow: 0 4px 15px rgba(75, 73, 172, 0.3);">
-                        GUARDAR CAMBIOS MAESTROS
+                <div class="modal-footer d-flex justify-content-between">
+                    <button type="button" class="btn btn-warning" onclick="registrarAporteHogar(event)">
+                        Aporte Hogar
+                    </button>
+                    
+                    <button type="submit" class="btn btn-primary" style="background-color: var(--skydash-blue); border: none;">
+                        GUARDAR CAMBIOS
                     </button>
                 </div>
             </form>

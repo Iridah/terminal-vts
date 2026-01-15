@@ -13,6 +13,7 @@ data_v.csv
 *.moo
 __pycache__/
 .env
+db_backup_*.sqlite3
 
 # Ignorar archivos de configuración de Google Drive
 token.json
