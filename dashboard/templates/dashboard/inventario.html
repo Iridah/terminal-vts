@@ -6,6 +6,7 @@
         <i class="fa-solid fa-boxes-stacked"></i> La Forja
     </h1>
 </div>
+
 <div class="mb-3">
     <div class="input-group">
         <div class="input-group-prepend">
@@ -14,6 +15,7 @@
         <input type="text" id="vtsSearch" class="form-control" placeholder="Escanear Código de Barras o buscar SKU/Producto...">
     </div>
 </div>
+
 <div class="card shadow-sm border-0" style="border-radius: 15px; overflow: hidden;">
     <div class="table-responsive">
         <table class="table table-hover m-0">
@@ -23,7 +25,8 @@
                     <th>Producto / Sección</th>
                     <th class="text-center">Termómetro</th>
                     <th class="text-center">Margen Illidari</th>
-                    <th>Ajuste Físico</th>
+                    <th class="text-center" style="background: rgba(75, 73, 172, 0.05);">Stock Actual</th> 
+                    <th class="text-center">Ingreso Compra</th>
                 </tr>
             </thead>
             <tbody>
@@ -37,6 +40,7 @@
                             {{ item.sku }}
                         </a>
                     </td>
+
                     <td>
                         <div style="font-weight: 600;">{{ item.producto }}</div>
                         <div style="font-size: 0.8rem; color: #6c757d;">
@@ -45,21 +49,31 @@
                             {% if item.codigo_barras %}| <i class="fa fa-barcode"></i> {{ item.codigo_barras }}{% endif %}
                         </div>
                     </td>
+
                     <td class="text-center">
                         {% with s=item.get_stock_status %}
                         <span class="badge" style="background: {{ s.color }}; color: white; border-radius: 8px;">{{ s.texto }}</span>
                         {% endwith %}
                     </td>
+
                     <td class="text-center">
                         {% with r=item.get_rentabilidad_status %}
                         <span style="color: {{ r.color }}; font-weight: bold;"><i class="fa-solid {{ r.icon }}"></i> {{ r.texto }}</span>
                         {% endwith %}
                     </td>
-                    <td>
-                        <form action="{% url 'actualizar_inventario' item.sku %}" method="POST" class="d-flex" style="gap: 5px;">
+
+                    <td class="text-center" style="background: rgba(75, 73, 172, 0.02);">
+                        <span class="h5 font-weight-bold" style="color: #4B49AC;">{{ item.inventario_real }}</span>
+                    </td>
+
+                    <td class="text-center">
+                        <form action="{% url 'actualizar_inventario' item.sku %}" method="POST" class="d-flex justify-content-center" style="gap: 5px;">
                             {% csrf_token %}
-                            <input type="number" name="cantidad" value="{{ item.inventario_real }}" class="form-control form-control-sm" style="width: 70px;">
-                            <button type="submit" class="btn btn-sm btn-primary" style="background-color: #4B49AC; border: none;">
+                            <input type="number" name="cantidad" 
+                                   placeholder="{{ item.inventario_real }}"
+                                   class="form-control form-control-sm" 
+                                   style="width: 75px; text-align: center; border-radius: 8px;">
+                            <button type="submit" class="btn btn-sm btn-primary" style="background-color: #4B49AC; border: none; border-radius: 8px;">
                                 <i class="fa fa-save"></i>
                             </button>
                         </form>
@@ -71,81 +85,4 @@
     </div>
 </div>
 
-{% for item in auditorias %}
-<div class="modal fade" id="modal-{{ item.sku|slugify }}" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
-            <div class="modal-header border-0 bg-light" style="border-radius: 20px 20px 0 0;">
-                <h5 class="modal-title font-weight-bold modal-sku-reference" 
-                    data-sku="{{ item.sku }}" 
-                    style="color: #4B49AC;">
-                    <i class="fa-solid fa-pen-to-square"></i> Maestro: {{ item.sku }}
-                </h5>
-                <button type="button" class="close" data-bs-dismiss="modal" style="background-color: #4B49AC; border: none;" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <form action="{% url 'actualizar_inventario' item.sku %}" method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="modal-body p-4">
-                    <div class="d-flex align-items-center mb-4">
-                        <div class="me-3">
-                            {% if item.imagen %}
-                                <img src="{{ item.imagen.url }}" class="img-thumbnail-vts" style="width: 80px; height: 80px;">
-                            {% else %}
-                                <div class="img-thumbnail-vts d-flex align-items-center justify-content-center bg-light" style="width: 80px; height: 80px; border-radius: 15px;">
-                                    <i class="fa-solid fa-box text-muted fa-2x"></i>
-                                </div>
-                            {% endif %}
-                        </div>
-                        <div class="flex-grow-1">
-                            <label class="small font-weight-bold text-uppercase text-muted">Imagen del Producto (WebP)</label>
-                            <input type="file" name="imagen" class="form-control form-control-sm" accept="image/*" style="border: 1px dashed #4B49AC;">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="small font-weight-bold text-uppercase" style="color: #6C7383;">Nombre del Producto</label>
-                        <input type="text" name="nombre" class="form-control form-control-lg" value="{{ item.producto }}" style="background: #F5F7FF; border: none;">
-                    </div>
-                    <div class="row">
-                        <div class="col-6">
-                            <label class="small font-weight-bold text-uppercase" style="color: #6C7383;">Costo Neto ($)</label>
-                            <input type="number" step="0.01" name="costo" class="form-control" value="{{ item.precio_costo|stringformat:'.2f' }}">
-                        </div>
-                        <div class="col-6">
-                            <label class="small font-weight-bold text-uppercase" style="color: #6C7383;">Precio Venta ($)</label>
-                            <input type="number" step="0.01" name="precio" class="form-control" value="{{ item.precio_venta|stringformat:'.2f' }}">
-                        </div>
-                    </div>
-                    <div class="form-group mt-3">
-                        <label class="small font-weight-bold text-uppercase" style="color: #6C7383;">Sección / Categoría</label>
-                        <input type="text" name="seccion" class="form-control" value="{{ item.seccion }}">
-                    </div>
-                </div>
-                <div class="modal-footer d-flex justify-content-between">
-                    <button type="button" class="btn btn-warning" onclick="registrarAporteHogar(event)">
-                        Aporte Hogar
-                    </button>
-                    
-                    <button type="submit" class="btn btn-primary" style="background-color: var(--skydash-blue); border: none;">
-                        GUARDAR CAMBIOS
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-{% endfor %}
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-$(document).ready(function(){
-  $("#vtsSearch").on("keyup", function() {
-    var value = $(this).val().toLowerCase();
-    $("table tbody tr").filter(function() {
-      // Busca en toda la fila (SKU, Nombre, Sección, Variante, Código de Barras)
-      $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
-    });
-  });
-});
-</script>
 {% endblock %}
