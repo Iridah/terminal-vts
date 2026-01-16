@@ -130,3 +130,12 @@ class LogRetirosDeducibles(models.Model):
             # Guardamos el cambio en el padre
             self.sku.save() 
         super().save(*args, **kwargs)
+
+# Sugerencia de estructura lógica para el Análisis
+def get_potencial_ganancia(self):
+    """Calcula la utilidad bruta total del stock actual"""
+    try:
+        margen_unitario = self.precio_venta - self.precio_costo
+        return margen_unitario * self.inventario_real
+    except:
+        return 0

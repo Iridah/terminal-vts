@@ -1,5 +1,4 @@
 // dashboard/static/dashboard/js/main.js
-// dashboard/static/dashboard/js/main.js
 console.log("Martillo Vil: Motor de estabilidad iniciado.");
 
 // 1. Obtener CSRF Token para seguridad

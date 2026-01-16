@@ -1,5 +1,49 @@
 # 📜 Registro de Cambios (Changelog)
-Estado: Estable 🟢 | Rama: 4-modulo 4 (Apuntando a GitHub)
+# 🛠️ Martillo Vil - Versión 2.6 (Dj6) Estado: Estable 🟢
+
+### 📋 Cambios Principales
+- **Chasis UI**: Implementación de Sidebar expandible inteligente y diseño minimalista v2.6.
+- **Motor de Estabilidad**: Migración a Django 6 (Beta 1) con optimización de consultas `annotate` en SQLite.
+- **La Forja Pro**: 
+  - Buscador optimizado para scanners (evento `input`).
+  - Termómetro visual de stock sin ruido de texto.
+  - Sistema de "Suma Rápida" para ingreso de mercadería PM.
+- **API Aporte Hogar**: Endpoint dedicado para retiros manuales con trazabilidad doble (Deducibles + Historial General).
+
+### 📊 Métricas Actuales Monitoreadas (Cierre Refactorización)
+- **Capital Real Auditado**
+- **Ratio (ROI Proyectado)**
+- **SKU Activos Totales**
+- **Estado de Auditoría**
+
+### 🚀 Despliegue
+- **Rama**: `v2.6-modulo6-dj6`
+- **Ambiente**: Local / Desplegando a produccion un viernes...
+
+### 🧜‍♂️ Mapa Visual del Sistema (Actualizado)
+```mermaid
+graph TD
+    User((Comandante VTS)) -->|Ingreso SKU| Admin[Admin Django]
+    Admin -->|Update| DB[(SQLite: AuditoriaVTS)]
+    
+    User -->|Suma Rápida| Forja[La Forja: JS Engine]
+    Forja -->|API Fetch| Views[views.actualizar_inventario]
+    
+    User -->|Retiro| AH[Aporte Hogar: Modal]
+    AH -->|API Fetch| AH_View[views.registrar_aporte_hogar]
+    
+    AH_View -->|Create| LogAH[LogRetirosDeducibles]
+    AH_View -->|Create| Hist[HistorialStock]
+    
+    DB -->|Crunching| Fel[FelEngine]
+    Fel -->|Output| Dashboard[Panel de Control: Charts]
+    Fel -->|Output| Analysis[Análisis Pro: ROI/Ratio]
+```
+
+
+_________________________________________________________________________________________
+# 📜 Registro de Cambios (Changelog)
+Estado: Estable 🟢 | Rama: v2.5
 
 ## 📸 Módulo 5: Identidad Visual y Remota (NUEVO)
 + Motor de Imágenes WebP: Integración de Pillow con algoritmo LANCZOS en el modelo para conversión automática de JPG/PNG a WebP (800px max).

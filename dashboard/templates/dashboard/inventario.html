@@ -1,97 +1,97 @@
+<!-- dashboard/templates/dashboard/inventario.html -->
 {% extends 'dashboard/base.html' %}
 
 {% block content %}
-<div class="mb-4">
-    <h1 style="color: #4B49AC; font-weight: 700;">
-        <i class="fa-solid fa-boxes-stacked"></i> La Forja
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <h1 class="fw-bold" style="color: var(--skydash-blue);">
+        <i class="fa-solid fa-boxes-stacked me-2"></i>La Forja
     </h1>
+    <div class="badge bg-primary rounded-pill px-3 py-2">Módulo 6: Dj6 Engine</div>
 </div>
 
-<div class="mb-3">
-    <div class="input-group">
-        <div class="input-group-prepend">
-            <span class="input-group-text bg-primary text-white"><i class="fa fa-search"></i></span>
-        </div>
-        <input type="text" id="vtsSearch" class="form-control" placeholder="Escanear Código de Barras o buscar SKU/Producto...">
+<div class="mb-4 shadow-sm rounded-4 bg-white p-2">
+    <div class="input-group border-0">
+        <span class="input-group-text bg-transparent border-0 text-muted"><i class="fa fa-search"></i></span>
+        <input type="text" id="vtsSearch" class="form-control border-0 shadow-none" placeholder="Escanear Código de Barras o SKU...">
     </div>
 </div>
 
-<div class="card shadow-sm border-0" style="border-radius: 15px; overflow: hidden;">
+<div class="card border-0 shadow-sm overflow-hidden">
     <div class="table-responsive">
-        <table class="table table-hover m-0">
-            <thead style="background: #F5F7FF; color: #4B49AC;">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light text-primary">
                 <tr>
-                    <th>SKU</th>
-                    <th>Producto / Sección</th>
+                    <th class="ps-4">SKU / Foto</th>
+                    <th>Producto</th>
                     <th class="text-center">Termómetro</th>
                     <th class="text-center">Ratio Illidari</th>
-                    <th class="text-center" style="background: rgba(75, 73, 172, 0.05);">Ingreso Rapido</th> 
+                    <th class="text-center pe-4" style="background: rgba(75, 73, 172, 0.03);">Suma Rápida</th> 
                 </tr>
             </thead>
             <tbody>
                 {% for item in auditorias %}
-                <tr {% if item.inventario_real == 0 %}style="background-color: rgba(113, 75, 35, 0.05);"{% endif %}>
-                    <td class="align-middle">
-                        <strong>{{ item.sku }}</strong><br>
-                        <small class="text-muted">{{ item.variante|default:"" }}</small>
+                <tr>
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center gap-3">
+                            {% if item.imagen and item.imagen.url %}
+                                <img src="{{ item.imagen.url }}" class="img-thumbnail-vts" alt="{{ item.sku }}">
+                            {% else %}
+                                <div class="img-thumbnail-vts d-flex align-items-center justify-content-center bg-light text-muted">
+                                    <i class="fa-solid fa-box shadow-none opacity-25"></i>
+                                </div>
+                            {% endif %}
+                            <span class="sku-badge">{{ item.sku }}</span>
+                        </div>
                     </td>
-
-                    <td class="align-middle">
-                        <div class="font-weight-bold" style="color: #333; font-size: 1rem;">
-                            {{ item.producto }}
+                    <!-- Aca meti la logica de la subventana para aporte hogar -->
+                    <td>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold text-dark">{{ item.producto }}</div>
+                                <small class="text-muted text-uppercase" style="font-size: 0.7rem;">{{ item.seccion }}</small>
+                            </div>
+                            <button onclick="registrarAporteHogar('{{ item.sku }}', '{{ item.producto }}')" 
+                                    class="btn btn-sm p-1 border-0 opacity-25 hover-opacity-100 transition-all"
+                                    title="Registrar Aporte Hogar"
+                                    style="background: transparent;">
+                                <i class="fa-solid fa-house-user text-primary" style="font-size: 0.9rem;"></i>
+                            </button>
                         </div>
-                        <div class="d-flex align-items-center mt-1" style="gap: 10px;">
-                            <span class="badge badge-light" style="font-size: 0.75rem; color: #4B49AC; border: 1px solid #e0e0e0; background: #f8f9fa;">
-                                {{ item.seccion }}
-                            </span>
-                            <small class="text-muted" style="font-size: 0.8rem;">
-                                {% if item.variante %}<strong>{{ item.variante }}</strong> | {% endif %}
-                                <i class="fa-solid fa-barcode mr-1"></i>{{ item.sku }}
-                            </small>
+                    </td>
+                    <td class="text-center" style="width: 120px;">
+                        {% with status=item.get_stock_status %}
+                        <div class="progress mx-auto" 
+                            style="height: 12px; width: 85px; background-color: rgba(0,0,0,0.05); border-radius: 20px; border: 1px solid rgba(0,0,0,0.03);" 
+                            title="{{ status.label }}"> <div class="progress-bar rounded-pill shadow-none" 
+                                style="width: 100%; background-color: {{ status.color }}; transition: width 0.4s ease;">
+                            </div>
                         </div>
+                        {% endwith %}
+                    </td>
+                    <td class="text-center">
+                        <span class="fw-bold" style="color: {{ item.get_rentabilidad_status.color }}; font-size: 0.8rem;">
+                            {{ item.get_rentabilidad_status.simbolo }} {{ item.get_rentabilidad_status.texto }}
+                        </span>
                     </td>
                     
-                    <td class="align-middle" style="width: 100px;">
-                        <div class="progress" 
-                            style="height: 14px; background-color: #f0f0f0; border-radius: 4px; border: 1px solid #eee; overflow: hidden;">
-                            
-                            <div class="progress-bar" 
-                                role="progressbar" 
-                                style="width: 100%; background-color: {{ item.get_stock_status.color }}; transition: none;"
-                                title="Estado: {{ item.get_stock_status.label }}">
-                            </div>
-                        </div>
-                    </td>
-
-                    <td class="align-middle text-center">
-                        <div style="font-weight: 900; color: {{ item.get_rentabilidad_status.color }}; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px;" 
-                            title="Ratio: {{ item.margen_db|floatformat:1 }}%">
-                            {{ item.get_rentabilidad_status.simbolo }} {{ item.get_rentabilidad_status.texto }}
-                        </div>
-                    </td>
-
-                    <td class="align-middle text-center">
-                        <form action="{% url 'actualizar_inventario' item.sku %}" method="POST" class="d-inline-flex align-items-center">
+                    <td class="text-center pe-4" style="background: rgba(75, 73, 172, 0.02);">
+                        <form action="{% url 'actualizar_inventario' item.sku %}" method="POST" class="d-flex align-items-center justify-content-center gap-2">
                             {% csrf_token %}
-                            <div class="input-group input-group-sm" style="width: 100px;">
-                                <input type="number" name="cantidad_nueva" 
-                                    class="form-control text-center" 
-                                    placeholder="+0" 
-                                    style="border-radius: 4px 0 0 4px; border: 1px solid #ddd; font-weight: bold;">
-                                <div class="input-group-append">
-                                    <button type="submit" class="btn btn-primary" style="border-radius: 0 4px 4px 0;">
-                                        <i class="ti-plus"></i>
-                                    </div>
-                                </div>
-                            </div>
+                            <input type="number" 
+                                name="cantidad_nueva" 
+                                class="stock-input-minimal rounded-1" 
+                                placeholder="+0" 
+                                oninput="validarStock(this)"
+                                style="width: 50px; border-bottom: 2px solid #dee2e6;">
+                            <button type="submit" class="btn-check-minimal border-0 bg-transparent p-0">
+                                <i class="fa-solid fa-circle-plus fs-4" style="color: var(--skydash-blue); opacity: 0.8;"></i>
+                            </button>
                         </form>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
-
         </table>
     </div>
 </div>
-
 {% endblock %}

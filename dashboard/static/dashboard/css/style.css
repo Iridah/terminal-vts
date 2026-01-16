@@ -1,4 +1,13 @@
 /* #static/dashboard/style.css - Refactorizado v2.6 */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+.main-content {
+    margin-left: var(--sidebar-width-compact);
+    width: calc(100% - var(--sidebar-width-compact));
+    /* ... resto de tu código ... */
+}
 
 :root {
     --skydash-blue: #4B49AC;
