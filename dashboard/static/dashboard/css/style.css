@@ -133,4 +133,55 @@ body {
 /* Modales y Z-Index */
 .modal-backdrop { z-index: 1050 !important; }
 .modal { z-index: 1060 !important; }
-.modal-content { border-radius: 20px !important; border: none; }
+.modal-content { border-radius: 20px !important; border: none; 
+}
+
+
+    .form-control-minimal {
+        border: none;
+        border-bottom: 2px solid #ddd;
+        background: transparent;
+        width: 50px;
+        text-align: center;
+        font-weight: bold;
+        transition: border-color 0.3s;
+    }
+    .form-control-minimal:focus {
+        outline: none;
+        border-bottom-color: #4B49AC;
+    }
+    .btn-save-minimal {
+        background: none;
+        border: none;
+        color: #4B49AC;
+        cursor: pointer;
+        padding-left: 10px;
+    }
+
+    .stock-input-minimal {
+        border: none;
+        border-bottom: 1px solid #ddd;
+        background: transparent;
+        width: 45px;
+        text-align: center;
+        font-weight: 500;
+        color: #444;
+        padding: 0;
+    }
+    .stock-input-minimal:focus {
+        outline: none;
+        border-bottom: 2px solid #4B49AC;
+        color: #4B49AC;
+    }
+    .btn-check-minimal {
+        background: none;
+        border: none;
+        color: #71c016; /* Color éxito sutil */
+        cursor: pointer;
+        font-size: 0.9rem;
+        padding: 0;
+        opacity: 0.6;
+    }
+    .btn-check-minimal:hover {
+        opacity: 1;
+    }

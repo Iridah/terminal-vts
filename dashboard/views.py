@@ -76,32 +76,27 @@ def inventario_list(request):
 # --- 4. ACCIÓN: ACTUALIZAR PRODUCTO ---
 def actualizar_inventario(request, sku):
     if request.method == 'POST':
-        try:
-            item = get_object_or_404(AuditoriaVTS, sku=sku)
-            stock_viejo = item.inventario_real
-            
-            nuevo_stock = request.POST.get('cantidad') or request.POST.get('inventario_real')
-            nuevo_costo = request.POST.get('costo')
-            nuevo_precio = request.POST.get('precio')
-            nuevo_nombre = request.POST.get('nombre')
-
-            if 'imagen' in request.FILES: item.imagen = request.FILES['imagen']
-            if nuevo_nombre: item.producto = nuevo_nombre
-            if nuevo_costo: item.precio_costo = float(nuevo_costo)
-            if nuevo_precio: item.precio_venta = float(nuevo_precio)
-            if nuevo_stock is not None: item.inventario_real = int(nuevo_stock)
-
+        item = get_object_or_404(AuditoriaVTS, sku=sku)
+        stock_viejo = item.inventario_real
+        
+        # Capturamos la cantidad a SUMAR del nuevo input
+        cantidad_a_sumar = int(request.POST.get('cantidad_nueva') or 0)
+        
+        if cantidad_a_sumar != 0:
+            # Operación ciega: Solo sumamos
+            item.inventario_real += cantidad_a_sumar
             item.save()
             
-            if nuevo_stock is not None and int(nuevo_stock) != stock_viejo:
-                HistorialStock.objects.create(
-                    sku=sku, producto=item.producto, stock_anterior=stock_viejo,
-                    stock_nuevo=item.inventario_real,
-                    usuario=request.user.username if request.user.is_authenticated else "Admin_VTS"
-                )
-            messages.success(request, f"✅ {sku} actualizado.")
-        except Exception as e:
-            messages.error(request, f"❌ Error: {str(e)}")
+            # Registro en historial
+            HistorialStock.objects.create(
+                sku=sku,
+                producto=item.producto,
+                stock_anterior=stock_viejo,
+                stock_nuevo=item.inventario_real,
+                usuario=request.user.username if request.user.is_authenticated else "Admin_VTS"
+            )
+            messages.success(request, f"✅ Se añadieron {cantidad_a_sumar} unidades a {sku}.")
+            
     return redirect('inventario')
 
 # --- 5. BÚSQUEDA Y DETALLE ---

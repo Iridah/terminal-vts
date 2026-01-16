@@ -1,20 +1,8 @@
-$(document).ready(function() {
-    console.log("Martillo Vil: JS Cargado y listo.");
+// dashboard/static/dashboard/js/main.js
+// dashboard/static/dashboard/js/main.js
+console.log("Martillo Vil: Motor de estabilidad iniciado.");
 
-    // Asegurar que los modales se inicialicen correctamente
-    $('.modal').modal({
-        show: false,
-        backdrop: 'static'
-    });
-
-    // Limpieza automática de restos de modales al cerrar
-    $('.modal').on('hidden.bs.modal', function () {
-        $('body').removeClass('modal-open');
-        $('.modal-backdrop').remove();
-    });
-});
-
-// Función esencial para que Django acepte el POST
+// 1. Obtener CSRF Token para seguridad
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -30,26 +18,23 @@ function getCookie(name) {
     return cookieValue;
 }
 
-function registrarAporteHogar(event) {
-    // 1. Prevenir que la página se recargue (F5)
-    if (event) event.preventDefault();
-
-    // 2. Capturar el SKU desde el título del modal
-    // Buscamos el modal que está actualmente visible (el que clickeaste)
-    const modalActivo = event.target.closest('.modal');
-    // Buscamos la referencia del SKU dentro de ESE modal específico
-    const skuElement = modalActivo.querySelector('.modal-sku-reference');
-    if (!skuElement) {
-        alert("Error: No se encontró el SKU en el modal.");
-        return;
-    }
-
-    // Usamos el atributo data-sku que es mucho más limpio que limpiar texto
-    const sku = skuElement.getAttribute('data-sku');
-    // 3. Pedir la cantidad
-    const cantidad = prompt(`¿Cuántas unidades de ${sku} se retiran para Aporte Hogar?`, "1");
+// 2. Validación visual en tiempo real
+function validarStock(input) {
+    if (input.value < 0) input.value = 0;
     
-    // 4. Validar y enviar
+    if (input.value == 0) {
+        input.style.backgroundColor = "#ffe6e6";
+        input.classList.add("border-danger");
+    } else {
+        input.style.backgroundColor = "";
+        input.classList.remove("border-danger");
+    }
+}
+
+// 3. Aporte Hogar unificado (Tabla y Modal)
+function registrarAporteHogar(sku, nombre) {
+    const cantidad = prompt(`¿Cuántas unidades de ${nombre || sku} se retiran para Aporte Hogar?`, "1");
+    
     if (cantidad && !isNaN(cantidad) && cantidad > 0) {
         fetch('/registrar-aporte-hogar/', {
             method: 'POST',
@@ -65,15 +50,37 @@ function registrarAporteHogar(event) {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                alert(`✅ Retiro exitoso de ${sku}. Stock actual: ${data.nuevo_stock}`);
                 location.reload(); 
             } else {
                 alert("❌ Error: " + data.message);
             }
         })
-        .catch(error => {
-            console.error('Error en fetch:', error);
-            alert("Error de conexión con Mardum.");
-        });
+        .catch(error => alert("Error de conexión con Mardum."));
     }
 }
+
+// Buscador en tiempo real para La Forja
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('vtsSearch');
+    
+    if (searchInput) {
+        console.log("Martillo Vil: Buscador vinculado.");
+        
+        searchInput.addEventListener('input', function() { // Cambiado de 'keyup' a 'input' para escáneres
+            const filter = this.value.toLowerCase().trim();
+            const rows = document.querySelectorAll("tbody tr");
+
+            rows.forEach(row => {
+                // Buscamos específicamente en SKU (celda 0) y Producto (celda 1)
+                const sku = row.cells[0].textContent.toLowerCase();
+                const producto = row.cells[1].textContent.toLowerCase();
+                
+                if (sku.includes(filter) || producto.includes(filter)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        });
+    }
+});

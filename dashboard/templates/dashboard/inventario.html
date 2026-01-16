@@ -24,63 +24,72 @@
                     <th>SKU</th>
                     <th>Producto / Sección</th>
                     <th class="text-center">Termómetro</th>
-                    <th class="text-center">Margen Illidari</th>
-                    <th class="text-center" style="background: rgba(75, 73, 172, 0.05);">Stock Actual</th> 
-                    <th class="text-center">Ingreso Compra</th>
+                    <th class="text-center">Ratio Illidari</th>
+                    <th class="text-center" style="background: rgba(75, 73, 172, 0.05);">Ingreso Rapido</th> 
                 </tr>
             </thead>
             <tbody>
                 {% for item in auditorias %}
-                <tr>
-                    <td style="padding: 15px; font-weight: 700;">
-                        <a href="javascript:void(0);" 
-                           data-bs-toggle="modal"
-                           data-bs-target="#modal-{{ item.sku|slugify }}" 
-                           style="color: #4B49AC; text-decoration: underline;">
-                            {{ item.sku }}
-                        </a>
+                <tr {% if item.inventario_real == 0 %}style="background-color: rgba(113, 75, 35, 0.05);"{% endif %}>
+                    <td class="align-middle">
+                        <strong>{{ item.sku }}</strong><br>
+                        <small class="text-muted">{{ item.variante|default:"" }}</small>
                     </td>
 
-                    <td>
-                        <div style="font-weight: 600;">{{ item.producto }}</div>
-                        <div style="font-size: 0.8rem; color: #6c757d;">
-                            {{ item.seccion }} 
-                            {% if item.variante %}| <strong>Talla: {{ item.variante }}</strong>{% endif %}
-                            {% if item.codigo_barras %}| <i class="fa fa-barcode"></i> {{ item.codigo_barras }}{% endif %}
+                    <td class="align-middle">
+                        <div class="font-weight-bold" style="color: #333; font-size: 1rem;">
+                            {{ item.producto }}
+                        </div>
+                        <div class="d-flex align-items-center mt-1" style="gap: 10px;">
+                            <span class="badge badge-light" style="font-size: 0.75rem; color: #4B49AC; border: 1px solid #e0e0e0; background: #f8f9fa;">
+                                {{ item.seccion }}
+                            </span>
+                            <small class="text-muted" style="font-size: 0.8rem;">
+                                {% if item.variante %}<strong>{{ item.variante }}</strong> | {% endif %}
+                                <i class="fa-solid fa-barcode mr-1"></i>{{ item.sku }}
+                            </small>
+                        </div>
+                    </td>
+                    
+                    <td class="align-middle" style="width: 100px;">
+                        <div class="progress" 
+                            style="height: 14px; background-color: #f0f0f0; border-radius: 4px; border: 1px solid #eee; overflow: hidden;">
+                            
+                            <div class="progress-bar" 
+                                role="progressbar" 
+                                style="width: 100%; background-color: {{ item.get_stock_status.color }}; transition: none;"
+                                title="Estado: {{ item.get_stock_status.label }}">
+                            </div>
                         </div>
                     </td>
 
-                    <td class="text-center">
-                        {% with s=item.get_stock_status %}
-                        <span class="badge" style="background: {{ s.color }}; color: white; border-radius: 8px;">{{ s.texto }}</span>
-                        {% endwith %}
+                    <td class="align-middle text-center">
+                        <div style="font-weight: 900; color: {{ item.get_rentabilidad_status.color }}; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px;" 
+                            title="Ratio: {{ item.margen_db|floatformat:1 }}%">
+                            {{ item.get_rentabilidad_status.simbolo }} {{ item.get_rentabilidad_status.texto }}
+                        </div>
                     </td>
 
-                    <td class="text-center">
-                        {% with r=item.get_rentabilidad_status %}
-                        <span style="color: {{ r.color }}; font-weight: bold;"><i class="fa-solid {{ r.icon }}"></i> {{ r.texto }}</span>
-                        {% endwith %}
-                    </td>
-
-                    <td class="text-center" style="background: rgba(75, 73, 172, 0.02);">
-                        <span class="h5 font-weight-bold" style="color: #4B49AC;">{{ item.inventario_real }}</span>
-                    </td>
-
-                    <td class="text-center">
-                        <form action="{% url 'actualizar_inventario' item.sku %}" method="POST" class="d-flex justify-content-center" style="gap: 5px;">
+                    <td class="align-middle text-center">
+                        <form action="{% url 'actualizar_inventario' item.sku %}" method="POST" class="d-inline-flex align-items-center">
                             {% csrf_token %}
-                            <input type="number" name="cantidad" 
-                                   placeholder="{{ item.inventario_real }}"
-                                   class="form-control form-control-sm" 
-                                   style="width: 75px; text-align: center; border-radius: 8px;">
-                            <button type="submit" class="btn btn-sm btn-primary" style="background-color: #4B49AC; border: none; border-radius: 8px;">
-                                <i class="fa fa-save"></i>
-                            </button>
+                            <div class="input-group input-group-sm" style="width: 100px;">
+                                <input type="number" name="cantidad_nueva" 
+                                    class="form-control text-center" 
+                                    placeholder="+0" 
+                                    style="border-radius: 4px 0 0 4px; border: 1px solid #ddd; font-weight: bold;">
+                                <div class="input-group-append">
+                                    <button type="submit" class="btn btn-primary" style="border-radius: 0 4px 4px 0;">
+                                        <i class="ti-plus"></i>
+                                    </div>
+                                </div>
+                            </div>
                         </form>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
+
         </table>
     </div>
 </div>
