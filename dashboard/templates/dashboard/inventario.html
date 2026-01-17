@@ -54,13 +54,12 @@
                                 <div class="fw-bold text-dark">{{ item.producto }}</div>
                                 <small class="text-muted text-uppercase" style="font-size: 0.7rem;">{{ item.seccion }}</small>
                             </div>
-                            <button onclick="registrarAporteHogar('{{ item.sku }}', '{{ item.producto }}')" 
+                            <button onclick="abrirTrinidad('{{ item.sku }}', '{{ item.producto }}')" 
                                     class="btn btn-sm p-1 border-0 opacity-25 hover-opacity-100 transition-all"
-                                    title="Registrar Aporte Hogar"
+                                    title="Operación de Salida (Trinidad)"
                                     style="background: transparent;">
-                                <i class="fa-solid fa-house-user text-primary" style="font-size: 0.9rem;"></i>
+                                <i class="fa-solid fa-house-chimney-window text-primary" style="font-size: 0.9rem;"></i>
                             </button>
-                        </div>
                     </td>
                     <td class="text-center" style="width: 120px;">
                         {% with status=item.get_stock_status %}
@@ -96,6 +95,40 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+</div>
+
+<div class="modal fade" id="modalTrinidadSalida" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white border-0">
+                <h5 class="modal-title"><i class="fa-solid fa-cart-arrow-down me-2"></i> Registrar Salida de Stock</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="formTrinidad">
+                    <input type="hidden" id="trinidadSku">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Producto:</label>
+                        <div id="trinidadNombre" class="p-2 bg-light rounded text-muted small"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tipo de Documento / Salida:</label>
+                        <select class="form-select border-2" id="tipoSalida" required>
+                            <option value="BOLETA" selected>🧾 Venta con Boleta (SumUp/Efectivo)</option>
+                            <option value="FACTURA">🏢 Venta con Factura (Ficha Cliente)</option>
+                            <option value="INTERNO">🏠 Venta Interna / Vecino (Sin Boleta)</option>
+                            <option value="APORTE">🧸 Aporte Hogar (Deducible)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Cantidad:</label>
+                        <input type="number" class="form-control form-control-lg text-center" id="trinidadCant" value="1" min="1">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Confirmar Operación</button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -1,196 +1,158 @@
-/* #static/dashboard/style.css - Refactorizado v2.6 */
-*, *::before, *::after {
-    box-sizing: border-box;
-}
-
-.main-content {
-    margin-left: var(--sidebar-width-compact);
-    width: calc(100% - var(--sidebar-width-compact));
-    /* ... resto de tu código ... */
-}
-
+/* VTS-MV CSS Consolidado v2.7.5 */
 :root {
     --skydash-blue: #4B49AC;
     --skydash-light: #7da7fb;
+    --bg-body: #e5e7eb; 
     --sidebar-width-full: 260px;
     --sidebar-width-compact: 80px;
-    --bg-body: #F5F7FF;
-    --glass-white: rgba(255, 255, 255, 0.9);
 }
+
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
+    background-color: var(--bg-body) !important;
     font-family: 'Nunito', sans-serif;
-    background-color: var(--bg-body);
     margin: 0;
     display: flex;
+    min-height: 100vh;
 }
 
-/* --- SIDEBAR MAESTRO (Inteligente) --- */
+/* SIDEBAR MAESTRO */
 .sidebar {
     width: var(--sidebar-width-compact);
-    background: var(--glass-white);
+    background: white;
     height: 100vh;
     position: fixed;
     box-shadow: 4px 0 15px rgba(0,0,0,0.05);
-    z-index: 1045; /* Justo debajo del modal-backdrop */
+    z-index: 1045;
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    backdrop-filter: blur(10px);
     overflow: hidden;
     display: flex;
     flex-direction: column;
 }
-
-/* Expansión al hacer hover */
-.sidebar:hover {
-    width: var(--sidebar-width-full);
-}
+.sidebar:hover { width: var(--sidebar-width-full); }
 
 .brand {
-    padding: 25px;
-    font-weight: 800;
-    font-size: 1.2em;
-    color: var(--skydash-blue);
-    border-bottom: 1px solid #eee;
-    white-space: nowrap;
-    overflow: hidden;
-}
-
-/* Menú de Navegación */
-.nav-menu { padding: 20px 0; flex-grow: 1; }
-
-.nav-item {
-    padding: 15px 20px;
+    padding: 20px;
     display: flex;
     align-items: center;
-    text-decoration: none;
+    color: var(--skydash-blue);
+    font-weight: 800;
+}
+.brand span { display: none; margin-left: 10px; }
+.sidebar:hover .brand span { display: inline; }
+
+.nav-item {
+    padding: 15px 25px;
+    display: flex;
+    align-items: center;
     color: #6C7383;
-    font-weight: 600;
-    transition: 0.3s;
+    text-decoration: none;
+    transition: 0.2s;
     white-space: nowrap;
 }
+.nav-item i { min-width: 30px; font-size: 1.2rem; }
+.nav-item span { display: none; margin-left: 10px; }
+.sidebar:hover .nav-item span { display: inline; }
+.nav-item.active { color: var(--skydash-blue); font-weight: bold; background: #f8f9ff; }
 
-.nav-item i {
-    min-width: 40px; /* Centra el icono en modo compacto */
-    font-size: 1.3rem;
-    text-align: center;
-}
-
-.nav-item span {
-    opacity: 0;
-    margin-left: 15px;
-    transition: opacity 0.2s ease-in-out;
-}
-
-.sidebar:hover .nav-item span {
-    opacity: 1;
-}
-
-.nav-item:hover { background: #F5F7FF; color: var(--skydash-blue); }
-
-.nav-item.active {
-    background: var(--skydash-blue);
-    color: #FFFFFF;
-    border-radius: 0 25px 25px 0;
-    margin-right: 10px;
-}
-
-/* --- CONTENIDO PRINCIPAL --- */
+/* CONTENIDO PRINCIPAL */
 .main-content {
     margin-left: var(--sidebar-width-compact);
     width: calc(100% - var(--sidebar-width-compact));
-    min-height: 100vh;
-    padding: 30px;
+    padding: 20px 40px;
     transition: all 0.3s ease;
-    box-sizing: border-box;
 }
 
-/* --- UI COMPONENTS (Glassmorphism) --- */
 .card {
-    border: none;
-    border-radius: 15px;
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    transition: transform 0.3s ease;
+    background: white !important;
+    border: 1px solid rgba(0,0,0,0.1) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+    margin-bottom: 1.5rem;
 }
 
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 30px rgba(75, 73, 172, 0.15);
+/* UTILS */
+.hover-opacity-100 { opacity: 0.3; transition: 0.2s; }
+.hover-opacity-100:hover { opacity: 1 !important; transform: scale(1.1); }
+
+/* #static/dashboard/style.css - Refuerzo v2.7.5 */
+.metric-card {
+    border: none !important;
+    border-radius: 20px !important;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
 }
 
-/* Miniatura Mejorada (Módulo 6 Fix) */
-.img-thumbnail-vts {
+.metric-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.15) !important;
+}
+
+.fw-black { font-weight: 900; }
+
+/* Reparación de Tarjetas y Miniaturas v2.7.5 */
+
+/* 1. Control de Miniaturas en La Forja */
+.inventory-img-container {
     width: 60px;
     height: 60px;
-    object-fit: contain; /* No deforma la imagen */
-    background: #fff;
-    border-radius: 12px;
+    overflow: hidden;
+    border-radius: 8px;
     border: 1px solid #eee;
-    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f9f9f9;
+}
+
+.inventory-img-container img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Evita que la ampolleta se estire */
+}
+
+/* 2. Estabilización de Tarjetas del Dashboard */
+.metric-card {
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: all 0.3s ease;
+    background-color: #ffffff !important; /* Base blanca por defecto */
+}
+
+/* Colores de estado para las tarjetas vacías */
+.card-empty-state {
+    background: linear-gradient(45deg, #f3f3f3, #ffffff) !important;
+    border: 1px dashed #ccc !important;
+}
+
+/* 3. Ajuste de Análisis Pro */
+.analysis-card {
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+}
+
+/* Estabilizador de Miniaturas VTS v2.7.5 */
+.img-thumbnail-vts {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px;
+    object-fit: contain; /* Mantiene la proporción sin deformar */
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+    background: #fff;
+    padding: 2px;
 }
 
 .sku-badge {
-    background: #f0f2ff;
-    color: var(--skydash-blue);
-    padding: 4px 10px;
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 0.85rem;
+    color: #4B49AC;
+    background: rgba(75, 73, 172, 0.1);
+    padding: 4px 8px;
     border-radius: 6px;
-    font-family: 'Courier New', monospace;
-    font-size: 0.85em;
+    font-weight: 600;
 }
-
-/* Modales y Z-Index */
-.modal-backdrop { z-index: 1050 !important; }
-.modal { z-index: 1060 !important; }
-.modal-content { border-radius: 20px !important; border: none; 
-}
-
-
-    .form-control-minimal {
-        border: none;
-        border-bottom: 2px solid #ddd;
-        background: transparent;
-        width: 50px;
-        text-align: center;
-        font-weight: bold;
-        transition: border-color 0.3s;
-    }
-    .form-control-minimal:focus {
-        outline: none;
-        border-bottom-color: #4B49AC;
-    }
-    .btn-save-minimal {
-        background: none;
-        border: none;
-        color: #4B49AC;
-        cursor: pointer;
-        padding-left: 10px;
-    }
-
-    .stock-input-minimal {
-        border: none;
-        border-bottom: 1px solid #ddd;
-        background: transparent;
-        width: 45px;
-        text-align: center;
-        font-weight: 500;
-        color: #444;
-        padding: 0;
-    }
-    .stock-input-minimal:focus {
-        outline: none;
-        border-bottom: 2px solid #4B49AC;
-        color: #4B49AC;
-    }
-    .btn-check-minimal {
-        background: none;
-        border: none;
-        color: #71c016; /* Color éxito sutil */
-        cursor: pointer;
-        font-size: 0.9rem;
-        padding: 0;
-        opacity: 0.6;
-    }
-    .btn-check-minimal:hover {
-        opacity: 1;
-    }
