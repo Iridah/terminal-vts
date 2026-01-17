@@ -5,72 +5,76 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import AuditoriaVTS, HistorialStock, LogRetirosDeducibles
+from .models import AuditoriaVTS, HistorialStock, LogRetirosDeducibles, RegistroLogs
 from django.db.models import Sum, F, ExpressionWrapper, FloatField
 from django.db.models.functions import Coalesce
 from .engine import FelEngine
 from django.db import transaction
 from django.utils import timezone
+from datetime import timedelta
 
-# --- 1. DASHBOARD PRINCIPAL (Con Radar de Quiebres) ---
+# --- 1. DASHBOARD PRINCIPAL (Con Radar y ROI Unificados) ---
 def dashboard_home(request):
     auditorias = AuditoriaVTS.objects.all()
 
-    # 1. Lógica de Alertas Proactiva (Separada para el Semáforo)
-    quiebres_reales = auditorias.filter(inventario_real=0).count() # ROJO
-    alertas_reposicion = auditorias.filter(inventario_real__gt=0, inventario_real__lte=3).count() # AMARILLO
-    
-    # Lista única para la tabla "Listado de Riesgos" (Todo lo que sea <= 3)
+    # 1. Semáforo y Alertas Críticas
+    quiebres_reales = auditorias.filter(inventario_real=0).count()
+    alertas_reposicion = auditorias.filter(inventario_real__gt=0, inventario_real__lte=3).count()
     alertas_criticas = auditorias.filter(inventario_real__lte=3).order_by('inventario_real')
 
-    # 2. Capital Real (Dinero en estantería)
-    capital_total_qs = auditorias.aggregate(
+    # 2. Capital y Progreso
+    capital_total = auditorias.aggregate(
         total=Sum(F('inventario_real') * F('precio_costo'), output_field=FloatField())
-    )
-    capital_total = capital_total_qs['total'] or 0
-
-    # 3. Progreso de Auditoría
+    )['total'] or 0
+    
     total_sku = auditorias.count()
     auditados = auditorias.exclude(inventario_real=F('stock_sistema')).count()
     porc_completado = (auditados / total_sku * 100) if total_sku > 0 else 0
 
-    # 4. Datos para el Gráfico
-    capital_por_seccion = auditorias.values('seccion').annotate(
-        total_invertido=Sum(F('inventario_real') * F('precio_costo'), output_field=FloatField())
-    ).order_by('-total_invertido')
-
-    # 5. Formulas para el ROI 
+    # 3. Datos para ROI (Mini-gráfico y General)
     roi_por_seccion = auditorias.values('seccion').annotate(
         inversion=Sum(F('inventario_real') * F('precio_costo'), output_field=FloatField()),
         venta_proyectada=Sum(F('inventario_real') * F('precio_venta'), output_field=FloatField())
     )
-
-    roi_data = []
-    roi_labels = []
-    
+    roi_data, roi_labels = [], []
     for item in roi_por_seccion:
         if item['inversion'] > 0:
             margen = ((item['venta_proyectada'] - item['inversion']) / item['inversion']) * 100
             roi_data.append(round(margen, 1))
             roi_labels.append(item['seccion'])
 
+    # 4. Lógica Predictiva (El Corazón del Punto 2.7)
+    hace_una_semana = timezone.now() - timedelta(days=7)
+    alertas_quiebre = []
+    utiles = AuditoriaVTS.objects.filter(seccion='Libreria', inventario_real__lt=20)
+    
+    for util in utiles:
+        consumo_semanal = RegistroLogs.objects.filter(
+            sku=util.sku, tipo_accion='SALIDA', fecha__gte=hace_una_semana
+        ).aggregate(total=Sum('cantidad'))['total'] or 0
+        
+        consumo_diario = consumo_semanal / 7
+        if consumo_diario > 0:
+            dias_restantes = util.inventario_real / consumo_diario
+            if dias_restantes <= 3:
+                alertas_quiebre.append({
+                    'producto': util.producto,
+                    'dias': round(dias_restantes, 1),
+                    'stock': util.inventario_real
+                })
 
-
+    # 5. EL ÚNICO CONTEXTO
     context = {
         'total_productos': total_sku,
         'capital_total': capital_total,
         'porcentaje_completado': round(porc_completado, 1),
-        'secciones_labels': [p['seccion'] for p in capital_por_seccion],
-        'total_perdido_data': [float(p['total_invertido'] or 0) for p in capital_por_seccion],
-        
-        # Estas 3 variables son el alma del Semáforo y la Tabla:
+        'secciones_labels': [p['seccion'] for p in auditorias.values('seccion').annotate(t=Sum('inventario_real')).order_by('-t')],
         'quiebres_reales': quiebres_reales,
         'alertas_reposicion': alertas_reposicion,
         'productos_quiebre': alertas_criticas, 
-
-        # y aca el context para el ROI
         'roi_labels': roi_labels,
         'roi_data': roi_data,
+        'alertas_quiebre': alertas_quiebre, # Inyectamos la predicción aquí
     }
     return render(request, 'dashboard/index.html', context)
 

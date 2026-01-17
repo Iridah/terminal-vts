@@ -139,3 +139,14 @@ def get_potencial_ganancia(self):
         return margen_unitario * self.inventario_real
     except:
         return 0
+    
+class RegistroLogs(models.Model):
+    sku = models.CharField(max_length=50)
+    producto = models.CharField(max_length=200)
+    cantidad = models.IntegerField()
+    tipo_accion = models.CharField(max_length=20) # 'ENTRADA' o 'SALIDA'
+    fecha = models.DateTimeField(auto_now_add=True)
+    operador = models.CharField(max_length=100, default='Sistema')
+
+    def __str__(self):
+        return f"{self.tipo_accion} - {self.sku} ({self.fecha})"
