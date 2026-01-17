@@ -62,6 +62,19 @@
         </div>
     </div>
 
+    <!-- Aca va el grafico del ROI Avanzado -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
+                <h5 class="font-weight-bold mb-4 text-dark">ROI PROYECTADO POR SECCIÓN (%)</h5>
+                <div style="height: 300px;">
+                    <canvas id="roiChartAnalisis"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <div class="row">
         <div class="col-lg-8 mb-4">
             <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
@@ -124,4 +137,45 @@
         <i class="ti-alert mr-2"></i> No hay datos suficientes para generar el análisis pro.
     </div>
     {% endif %} </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('roiChartAnalisis').getContext('2d');
+    
+    // Usamos |safe para que JavaScript reciba el array de Python correctamente
+    const labels = {{ roi_labels|safe }};
+    const dataValues = {{ roi_data|safe }};
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Retorno sobre Inversión (%)',
+                data: dataValues,
+                borderColor: '#4B49AC',
+                backgroundColor: 'rgba(75, 73, 172, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#4B49AC',
+                pointRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { callback: function(value) { return value + '%'; } }
+                }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

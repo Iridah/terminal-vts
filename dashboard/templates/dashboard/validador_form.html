@@ -1,0 +1,14 @@
+<!-- dashboard/templates/dashboard/validador_form-html -->
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="card border-0 shadow-sm p-4" style="border-radius: 20px;">
+    <h3 class="fw-bold"><i class="fa-solid fa-file-import me-2"></i>Carga Masiva de Útiles</h3>
+    <p class="text-muted">Pega tu lista en formato: <b>SKU, CANTIDAD</b> (Uno por línea)</p>
+    
+    <form method="POST" action="{% url 'validador_masivo' %}">
+        {% csrf_token %}
+        <textarea name="bulk_data" class="form-control mb-3 font-monospace" rows="10" placeholder="V-LIB-001,24"></textarea>
+        <button type="submit" class="btn btn-primary px-5 rounded-pill">Validar Inventario</button>
+    </form>
+</div>
+{% endblock %}

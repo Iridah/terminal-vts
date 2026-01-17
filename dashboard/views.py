@@ -9,41 +9,68 @@ from .models import AuditoriaVTS, HistorialStock, LogRetirosDeducibles
 from django.db.models import Sum, F, ExpressionWrapper, FloatField
 from django.db.models.functions import Coalesce
 from .engine import FelEngine
+from django.db import transaction
+from django.utils import timezone
 
 # --- 1. DASHBOARD PRINCIPAL (Con Radar de Quiebres) ---
 def dashboard_home(request):
-    # 1. Traemos la base de datos con los cálculos de margen inyectados
     auditorias = AuditoriaVTS.objects.all()
+
+    # 1. Lógica de Alertas Proactiva (Separada para el Semáforo)
+    quiebres_reales = auditorias.filter(inventario_real=0).count() # ROJO
+    alertas_reposicion = auditorias.filter(inventario_real__gt=0, inventario_real__lte=3).count() # AMARILLO
     
-    # 2. Capital Total Basado en Inventario REAL (No en sistema)
-    # Cambiamos stock_sistema por inventario_real para ver la plata de verdad
+    # Lista única para la tabla "Listado de Riesgos" (Todo lo que sea <= 3)
+    alertas_criticas = auditorias.filter(inventario_real__lte=3).order_by('inventario_real')
+
+    # 2. Capital Real (Dinero en estantería)
     capital_total_qs = auditorias.aggregate(
         total=Sum(F('inventario_real') * F('precio_costo'), output_field=FloatField())
     )
     capital_total = capital_total_qs['total'] or 0
 
-    # 3. Radar de Quiebres (Solo lo que está en cero absoluto)
-    productos_quiebre = auditorias.filter(inventario_real=0)
-    
-    # 4. Progreso de la Auditoría
+    # 3. Progreso de Auditoría
     total_sku = auditorias.count()
-    # Consideramos "completado" si el inventario real es distinto al de sistema (ya se tocó)
     auditados = auditorias.exclude(inventario_real=F('stock_sistema')).count()
     porc_completado = (auditados / total_sku * 100) if total_sku > 0 else 0
 
-    # 5. Datos para el Gráfico de Barras (Inversión Real por Sección)
+    # 4. Datos para el Gráfico
     capital_por_seccion = auditorias.values('seccion').annotate(
         total_invertido=Sum(F('inventario_real') * F('precio_costo'), output_field=FloatField())
     ).order_by('-total_invertido')
 
+    # 5. Formulas para el ROI 
+    roi_por_seccion = auditorias.values('seccion').annotate(
+        inversion=Sum(F('inventario_real') * F('precio_costo'), output_field=FloatField()),
+        venta_proyectada=Sum(F('inventario_real') * F('precio_venta'), output_field=FloatField())
+    )
+
+    roi_data = []
+    roi_labels = []
+    
+    for item in roi_por_seccion:
+        if item['inversion'] > 0:
+            margen = ((item['venta_proyectada'] - item['inversion']) / item['inversion']) * 100
+            roi_data.append(round(margen, 1))
+            roi_labels.append(item['seccion'])
+
+
+
     context = {
         'total_productos': total_sku,
         'capital_total': capital_total,
-        'alertas_stock': productos_quiebre.count(),
         'porcentaje_completado': round(porc_completado, 1),
         'secciones_labels': [p['seccion'] for p in capital_por_seccion],
         'total_perdido_data': [float(p['total_invertido'] or 0) for p in capital_por_seccion],
-        'productos_quiebre': productos_quiebre[:10], # Limitamos para no romper el layout
+        
+        # Estas 3 variables son el alma del Semáforo y la Tabla:
+        'quiebres_reales': quiebres_reales,
+        'alertas_reposicion': alertas_reposicion,
+        'productos_quiebre': alertas_criticas, 
+
+        # y aca el context para el ROI
+        'roi_labels': roi_labels,
+        'roi_data': roi_data,
     }
     return render(request, 'dashboard/index.html', context)
 
@@ -117,9 +144,29 @@ def lista_logs(request):
     return render(request, 'dashboard/logs.html', {'logs': logs})
 
 def analisis_pro(request):
-    # El motor procesa todo, la vista solo entrega el sobre
     reporte = FelEngine.generar_reporte_general()
-    return render(request, 'dashboard/analisis_pro.html', {'reporte': reporte})
+    auditorias = AuditoriaVTS.objects.all()
+
+    # Reutilizamos la lógica del ROI para el gráfico de esta pestaña
+    roi_por_seccion = auditorias.values('seccion').annotate(
+        inversion=Sum(F('inventario_real') * F('precio_costo'), output_field=FloatField()),
+        venta_proyectada=Sum(F('inventario_real') * F('precio_venta'), output_field=FloatField())
+    )
+
+    roi_data = []
+    roi_labels = []
+    for item in roi_por_seccion:
+        if item['inversion'] > 0:
+            margen = ((item['venta_proyectada'] - item['inversion']) / item['inversion']) * 100
+            roi_data.append(round(margen, 1))
+            roi_labels.append(item['seccion'])
+
+    context = {
+        'reporte': reporte,
+        'roi_labels': roi_labels,
+        'roi_data': roi_data,
+    }
+    return render(request, 'dashboard/analisis_pro.html', context)
 
 # --- 7. APORTE HOGAR (API) ---
 @csrf_exempt
@@ -154,3 +201,92 @@ def registrar_aporte_hogar(request):
             return JsonResponse({'status': 'success', 'nuevo_stock': producto.inventario_real})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
+        
+# --- 8. VALIDADOR MASIVO ---
+def validador_masivo(request):
+    if request.method == 'POST':
+        raw_data = request.POST.get('bulk_data', '')
+        
+        # USO DE SPLITLINES: Maneja saltos de línea de Windows (\r\n) y Unix (\n) automáticamente
+        lineas = raw_data.splitlines() 
+        resultados = []
+        
+        for linea in lineas:
+            # Limpiamos espacios al inicio y final
+            linea_limpia = linea.strip()
+            
+            # Si la línea está vacía después de limpiar, la saltamos
+            if not linea_limpia: 
+                continue
+            
+            # Intentamos separar por coma, si falla, probamos punto y coma (por si acaso)
+            if ',' in linea_limpia:
+                partes = linea_limpia.split(',')
+            elif ';' in linea_limpia:
+                partes = linea_limpia.split(';')
+            else:
+                # Si no hay separador, asumimos que es solo SKU y cantidad 0 o error
+                partes = [linea_limpia]
+
+            sku = partes[0].strip().upper() # Forzamos mayúsculas para evitar errores
+            
+            # Manejo robusto de la cantidad (Si no es número, asumimos 0)
+            try:
+                cantidad = int(partes[1].strip()) if len(partes) > 1 else 0
+            except ValueError:
+                cantidad = 0
+            
+            producto = AuditoriaVTS.objects.filter(sku=sku).first()
+            
+            resultados.append({
+                'sku': sku,
+                'cantidad': cantidad,
+                'existe': producto is not None,
+                'nombre': producto.producto if producto else "NUEVO (No se sumará)",
+                'status_class': "table-success" if producto else "table-warning"
+            })
+            
+        return render(request, 'dashboard/validador_check.html', {'resultados': resultados})
+    
+    return render(request, 'dashboard/validador_form.html')
+
+# --- 9. IMPORTADOR MASIVO ---
+def procesar_carga_masiva(request):
+    if request.method == 'POST':
+        skus = request.POST.getlist('skus')
+        cantidades = request.POST.getlist('cantidades')
+        
+        # Usamos una transacción para que, si falla uno, no se rompa nada
+        with transaction.atomic():
+            for sku, cantidad in zip(skus, cantidades):
+                if not cantidad or int(cantidad) <= 0: continue
+                
+                # 1. Buscamos el producto para tener su nombre y stock actual para el log
+                producto = AuditoriaVTS.objects.filter(sku=sku).first()
+                
+                if producto:
+                    stock_anterior = producto.inventario_real
+                    nueva_cantidad = int(cantidad)
+                    
+                    # 2. Actualización atómica (Evita errores de concurrencia)
+                    AuditoriaVTS.objects.filter(sku=sku).update(
+                        inventario_real=F('inventario_real') + nueva_cantidad
+                    )
+                    
+                    # 3. Registro en Historial (Log)
+                    HistorialStock.objects.create(
+                        sku=sku,
+                        producto=producto.producto,
+                        stock_anterior=stock_anterior,
+                        stock_nuevo=stock_anterior + nueva_cantidad,
+                        usuario=request.user.username if request.user.is_authenticated else "Carga_Masiva_VTS",
+                        fecha_ajuste=timezone.now()
+                    )
+
+        messages.success(request, f"✅ Se procesaron {len(skus)} referencias correctamente.")
+        return render(request, 'dashboard/validador_success.html', {
+            'total_items': len(skus),
+            'fecha_completa': timezone.now(), # Esto lleva fecha y hora
+            'operador': request.user.username if request.user.is_authenticated else "Admin_VTS"
+        })
+    return redirect('validador_masivo')

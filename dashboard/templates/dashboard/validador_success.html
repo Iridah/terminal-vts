@@ -1,0 +1,32 @@
+<!-- dashboard/templates/dashboard/validador_sucess.html -->
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="container py-5">
+    <div class="card border-0 shadow-sm p-5 mx-auto text-center" style="border-radius: 30px; max-width: 550px;">
+        <i class="fa-solid fa-circle-check text-success display-1 mb-4"></i>
+        <h2 class="fw-bold">Carga Procesada con Éxito</h2>
+        
+        <div class="bg-light p-4 rounded-4 my-4">
+            <div class="row g-3">
+                <div class="col-6 text-start">
+                    <small class="text-muted d-block text-uppercase small fw-bold">Fecha y Hora</small>
+                    <span>{{ fecha_completa|date:"d/m/Y - H:i" }}</span>
+                </div>
+                <div class="col-6 text-start">
+                    <small class="text-muted d-block text-uppercase small fw-bold">Operador</small>
+                    <span>{{ operador }}</span>
+                </div>
+                <div class="col-12 text-start border-top pt-2">
+                    <small class="text-muted d-block text-uppercase small fw-bold">Productos Actualizados</small>
+                    <span class="h4 fw-bold text-primary">{{ total_items }} Referencias</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2">
+            <a href="{% url 'inventario' %}" class="btn btn-primary rounded-pill py-3 fw-bold">Volver a La Forja</a>
+            <a href="{% url 'home' %}" class="btn btn-link text-muted">Ir al Panel de Control</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

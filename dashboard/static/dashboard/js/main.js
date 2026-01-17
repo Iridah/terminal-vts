@@ -83,3 +83,57 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// --- AL FINAL DEL ARCHIVO, SOLO ESTO PARA EL GRÁFICO ---
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('perdidasSeccionChart');
+    if (ctx && window.chartLabels) { // Verificamos que existan los datos inyectados
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: window.chartLabels,
+                datasets: [{
+                    label: 'Capital por Sección',
+                    data: window.chartData,
+                    backgroundColor: '#7DA0FA',
+                    borderRadius: 12,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { display: false } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+    const roiCtx = document.getElementById('roiChart');
+    if (roiCtx && window.roiData) {
+        new Chart(roiCtx, {
+            type: 'line', // Línea para diferenciarlo de las barras de arriba
+            data: {
+                labels: window.roiLabels,
+                datasets: [{
+                    label: 'ROI %',
+                    data: window.roiData,
+                    borderColor: '#4B49AC',
+                    backgroundColor: 'rgba(75, 73, 172, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { ticks: { callback: v => v + '%' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }   
+});
