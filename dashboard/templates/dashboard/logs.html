@@ -1,0 +1,68 @@
+<!-- dashboard/templates/dashboard/logs.html -->
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4 class="card-title" style="color: #4B49AC; font-weight: 700;">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Historial de Movimientos
+                        </h4>
+                        <p class="card-description text-muted">Registro inmutable de ajustes en La Forja</p>
+                    </div>
+                    <span class="badge badge-info">{{ logs|length }} registros recientes</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead style="background: #F5F7FF;">
+                            <tr>
+                                <th>Fecha / Hora</th>
+                                <th>Auditor</th>
+                                <th>SKU</th>
+                                <th>Producto</th>
+                                <th>Movimiento (Físico)</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td class="font-weight-bold">{{ log.fecha_ajuste|date:"d/m/Y H:i" }}</td>
+                                <td><label class="badge badge-outline-primary">{{ log.usuario }}</label></td>
+                                <td><code>{{ log.sku }}</code></td>
+                                <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis;">{{ log.producto }}</td>
+                                <td>
+                                    <span class="text-muted">{{ log.stock_anterior }}</span> 
+                                    <i class="fa-solid fa-right-long mx-2 text-primary"></i> 
+                                    <span class="font-weight-bold" style="font-size: 1.1em;">{{ log.stock_nuevo }}</span>
+                                </td>
+                                <td>
+                                    {% if log.stock_nuevo < log.stock_anterior %}
+                                        <i class="fa-solid fa-arrow-down text-danger"></i> <small class="text-danger">Merma</small>
+                                    {% elif log.stock_nuevo > log.stock_anterior %}
+                                        <i class="fa-solid fa-arrow-up text-success"></i> <small class="text-success">Ingreso</small>
+                                    {% else %}
+                                        <i class="fa-solid fa-equals text-muted"></i> <small class="text-muted">Sin cambio</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5">
+                                    <i class="fa-solid fa-ghost fa-3x mb-3 text-light"></i>
+                                    <p class="text-muted">La Caja Negra está vacía. ¡Ve a La Forja y haz tu primer ajuste!</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

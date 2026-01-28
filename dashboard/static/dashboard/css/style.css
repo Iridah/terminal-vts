@@ -1,0 +1,183 @@
+/* VTS-MV CSS INTEGRADO v2.7.5 - POST-AMASADO */
+:root {
+    --skydash-blue: #4B49AC;
+    --skydash-light: #7da7fb;
+    --bg-body: #e5e7eb; 
+    --lavanda-vts: #E6E6FA;
+    --sidebar-width-full: 260px;
+    --sidebar-width-compact: 80px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    background-color: var(--bg-body);
+    font-family: 'Nunito', sans-serif;
+    margin: 0;
+    display: flex; /* Vital para que sidebar y contenido convivan */
+    min-height: 100vh;
+}
+
+/* 1. SIDEBAR MAESTRO (Base corregida) */
+.sidebar {
+    width: var(--sidebar-width-compact);
+    background: white;
+    height: 100vh;
+    position: fixed; /* Mantiene el sidebar fijo al scroll */
+    box-shadow: 4px 0 15px rgba(0,0,0,0.05);
+    z-index: 1045;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar:hover { 
+    width: var(--sidebar-width-full); 
+}
+
+.sidebar .nav-item {
+    display: flex;
+    align-items: center;
+    padding: 15px 25px;
+    text-decoration: none;
+    color: #6C7383;
+    white-space: nowrap;
+}
+
+.sidebar .nav-item i {
+    min-width: 35px;
+    font-size: 1.25rem;
+    color: var(--skydash-blue) !important;
+    display: inline-block !important;
+}
+
+.sidebar .nav-item span {
+    display: none; /* Oculto por defecto */
+    margin-left: 10px;
+}
+
+.sidebar:hover .nav-item span {
+    display: inline-block !important; /* Aparece en hover */
+}
+
+/* 2. CONTENIDO PRINCIPAL ADAPTATIVO */
+.main-content-area {
+    margin-left: var(--sidebar-width-compact); /* 80px fijos */
+    width: calc(100% - var(--sidebar-width-compact));
+    min-height: 100vh;
+    padding: 30px 45px;
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background-color: var(--bg-body);
+    display: block; /* Asegura que se comporte como bloque */
+}
+
+.sidebar:hover ~ .main-content-area {
+    margin-left: var(--sidebar-width-full);
+    width: calc(100% - var(--sidebar-width-full));
+}
+
+/* --- 2.1 HEADER / BANNER SUPERIOR --- */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    position: relative;
+    z-index: 10; /* Por encima de cualquier card */
+    background: transparent;
+}
+
+header h2 {
+    color: #212529;
+    letter-spacing: -0.5px;
+}
+
+/* El reloj de Zuldazar */
+#live-clock {
+    font-variant-numeric: tabular-nums; /* Evita que los números bailen */
+    letter-spacing: 1px;
+}
+
+/* 3. RESET DE TARJETAS Y MÉTRICAS */
+.card {
+    background-color: #ffffff; 
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.metric-card {
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--lavanda-vts) !important;
+}
+
+.metric-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.2) !important;
+    z-index: 10;
+}
+
+/* 4. UTILS Y GRÁFICOS */
+canvas {
+    max-height: 280px !important;
+    width: 100% !important;
+}
+
+.bg-danger { background-color: #dc3545 !important; color: white !important; }
+.bg-success { background-color: #198754 !important; color: white !important; }
+.bg-warning { background-color: #ffc107 !important; color: #212529 !important; }
+
+.bg-warning i { color: rgba(0,0,0,0.2) !important; }
+
+/* Agrega esto a tu style.css para darle vida al branding */
+.v-store-brand img {
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+}
+
+.v-store-brand img:hover {
+    transform: rotate(360deg) scale(1.2);
+    box-shadow: 0 0 20px rgba(75, 73, 172, 0.4);
+}
+
+/* 5. REPARACIÓN DE MINIATURAS (La Forja) */
+.img-thumbnail-vts {
+    width: 48px !important;
+    height: 48px !important;
+    object-fit: contain;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    background: #fff;
+    padding: 2px;
+}
+
+.sku-badge {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: var(--skydash-blue);
+    background: rgba(75, 73, 172, 0.1);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+/* --- HTMX UTILS --- */
+.htmx-indicator {
+    display: none;
+    transition: opacity 200ms ease-in;
+}
+.htmx-request .htmx-indicator {
+    display: inline-block;
+}
+.htmx-request.htmx-indicator {
+    display: inline-block;
+}

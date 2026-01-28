@@ -1,0 +1,124 @@
+<!-- dashboard/templates/dashboard/inventario.html -->
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <h1 class="fw-bold" style="color: var(--skydash-blue);">
+        <i class="fa-solid fa-boxes-stacked me-2"></i>La Forja Vil
+    </h1>
+    <!-- Aca metimos el boton de carga masiva -->
+    <!-- <a href="{% url 'validador_masivo' %}" class="btn btn-outline-primary rounded-pill">
+        <i class="fa-solid fa-boxes-packing me-2"></i>Carga Masiva
+    </a> -->
+    {% if user.is_staff %}
+        <a href="{% url 'validador_masivo' %}" class="btn btn-outline-primary rounded-pill">
+            <i class="fa-solid fa-boxes-packing me-2"></i>Carga Masiva
+        </a>
+    {% endif %}
+    <div class="badge bg-primary rounded-pill px-3 py-2">Módulo 7: Dj6 Engine v2.7</div>
+</div>
+<!-- Aca va el buscador de la forja -->
+<input type="text" 
+       name="q" 
+       class="form-control" 
+       placeholder="Buscar por SKU o Nombre..."
+       hx-get="{% url 'buscar_productos' %}" 
+       hx-target="#tabla-productos-body" 
+       hx-trigger="keyup changed delay:500ms"
+       hx-indicator="#buscando-spinner">
+
+<div id="buscando-spinner" class="htmx-indicator">
+    <i class="fas fa-spinner fa-spin text-primary"></i> Buscando en la Forja...
+</div>
+<!-- <div class="mb-4 shadow-sm rounded-4 bg-white p-2">
+    <div class="input-group border-0">
+        <span class="input-group-text bg-transparent border-0 text-muted"><i class="fa fa-search"></i></span>
+        <input type="text" id="vtsSearch" class="form-control border-0 shadow-none" placeholder="Escanear Código de Barras o SKU...">
+    </div>
+</div> -->
+
+<div class="card border-0 shadow-sm overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light text-primary">
+                <tr>
+                    <th class="ps-4">SKU / Foto</th>
+                    <th>Producto</th>
+                    <th class="text-center">Termómetro</th>
+                    <th class="text-center">Ratio</th>
+                    <th class="text-center pe-4" style="background: rgba(75, 73, 172, 0.03);">Suma Rápida</th> 
+                </tr>
+            </thead>
+            <tbody id="tabla-productos-body">
+                {% include 'dashboard/partials/forja_items_filas.html' %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+            <div class="modal fade" id="modalTrinidadSalida" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header bg-dark text-white border-0">
+                            <h5 class="modal-title"><i class="fa-solid fa-cart-arrow-down me-2"></i> Registrar Salida de Stock</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <form id="formTrinidad" 
+                                hx-post="{% url 'registrar_movimiento_htmx' 'SKU_DUMMY' %}" 
+                                hx-target="#tabla-productos-body" 
+                                hx-swap="innerHTML">
+                                {% csrf_token %}
+                                <input type="hidden" id="trinidadSku" name="sku">
+                                
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Producto:</label>
+                                    <div id="trinidadNombre" class="p-2 bg-light rounded text-muted small"></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tipo de Salida:</label>
+                                    <select class="form-select border-2" name="tipo" id="tipoSalida" required>
+                                        <option value="venta" selected>🧾 Venta (Boleta/Factura/Interno)</option>
+                                        <option value="merma">❌ Merma (Daño/Vencimiento)</option>
+                                        {% if user.is_staff %}
+                                            <option value="aporte">🏠 Aporte Hogar (Deducible)</option>
+                                            <option value="ingreso">📦 Ingreso Stock (Ajuste)</option>
+                                        {% endif %}
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Cantidad:</label>
+                                    <input type="number" name="cantidad" class="form-control form-control-lg text-center" id="trinidadCant" value="1" min="1">
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Confirmar Operación</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="modalCargaImagen" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title"><i class="fas fa-image me-2"></i> Actualizar Rostro en la Forja</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-4 text-center">
+                            <form id="formFoto" method="POST" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <p id="fotoNombreProd" class="fw-bold text-muted mb-3"></p>
+                                <div class="upload-area p-4 border border-2 border-dashed rounded-4 mb-3">
+                                    <i class="fas fa-cloud-upload-alt fs-1 text-primary mb-2"></i>
+                                    <input type="file" name="imagen" class="form-control" accept="image/*" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Vincular con la Forja</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endblock %}

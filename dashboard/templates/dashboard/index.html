@@ -1,0 +1,113 @@
+<!-- dashboard/templates/dashboard/index.html -->
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block header_title %}Panel de Control{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card p-4 h-100">
+            <h4 class="fw-bold mb-4" style="color: var(--skydash-blue);">
+                <i class="fa-solid fa-money-bill-trend-up me-2"></i>Valor por Sección
+            </h4>
+            <div style="height: 300px;">
+                <canvas id="perdidasSeccionChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- <div class="alert alert-info">
+        Debug: Capital[{{ capital_total }}] - Quiebres[{{ quiebres_reales }}] - Ganancia[{{ ganancia_potencial }}]
+    </div> -->
+
+    <div class="col-lg-5">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card p-4 metric-card {% if quiebres_reales > 0 %}bg-danger text-white{% else %}bg-success text-white{% endif %}">
+                    <small class="fw-bold text-uppercase opacity-75">Quiebres Reales</small>
+                    <h2 class="display-5 fw-bold mt-2 mb-0">{{ quiebres_reales }}</h2>
+                    <i class="fa-solid fa-triangle-exclamation position-absolute" style="right:15px; bottom:15px; font-size:2rem; opacity:0.2;"></i>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card p-4 metric-card {% if alertas_reposicion > 0 %}bg-warning{% else %}bg-success{% endif %}">
+                    <div class="card-body p-0">
+                        <small class="fw-bold text-uppercase opacity-75">Pronto Quiebre</small>
+                        <h2 class="display-5 fw-bold mt-2 mb-0">{{ alertas_reposicion }}</h2>
+                        <i class="fa-solid fa-clock-rotate-left position-absolute" style="right:15px; bottom:15px; font-size:2rem; opacity:0.15;"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card p-4 text-white metric-card" style="background: linear-gradient(135deg, #4B49AC 0%, #3f3da1 100%) !important;">
+                    <small class="opacity-75">Capital Total en Inventario</small>
+                    <h2 class="display-6 fw-bold mt-1 mb-0">$ {{ capital_total }}</h2>
+                    <i class="fa-solid fa-vault position-absolute" style="right:20px; bottom:20px; font-size:3rem; opacity:0.1;"></i>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card p-4 metric-card border-dashed bg-light opacity-50" style="border: 2px dashed #ccc !important;">
+                    <small class="text-muted">RESERVA COL-6 (Módulo 7)</small>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card p-4 metric-card border-dashed bg-light opacity-50" style="border: 2px dashed #ccc !important;">
+                    <small class="text-muted">RESERVA COL-6 (Módulo 7)</small>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="card p-4 metric-card border-dashed bg-light opacity-50" style="border: 2px dashed #ccc !important;">
+                    <small class="text-muted">RESERVA COL-12 (Módulo 8)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card p-4">
+            <h5 class="card-title text-primary mb-4">Listado de Riesgos Críticos</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle small">
+                    <thead class="bg-light text-muted">
+                        <tr><th>PRODUCTO</th><th>SKU</th><th>ESTADO</th></tr>
+                    </thead>
+                    <tbody id="quiebres-body">
+                        {% for item in productos_quiebre %}
+                        <tr>
+                            <td><strong>{{ item.producto }}</strong></td>
+                            <td><code class="text-primary">{{ item.sku }}</code></td>
+                            <td>
+                                {% if item.inventario_real == 0 %}
+                                <span class="badge bg-danger rounded-pill">QUIEBRE</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark rounded-pill">{{ item.inventario_real }} un.</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card p-4 h-100">
+            <h6 class="text-muted fw-bold small mb-3">ROI PROYECTADO (%)</h6>
+            <div style="height: 300px;"> <canvas id="roiChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.chartLabels = {{ secciones_labels|safe }};
+    window.chartData = {{ total_perdido_data|safe }}; // Ahora sí tiene los montos por sección
+    window.roiLabels = {{ secciones_labels|safe }};
+    window.roiData = {{ roi_data|safe }};
+</script>
+{% endblock %}

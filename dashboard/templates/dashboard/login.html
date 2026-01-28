@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>MOO | Acceso al motor VTS</title>
+  <link rel="stylesheet" href="{% static 'css/login_glass.css' %}">
+  <link rel="stylesheet" href="{% static 'dashboard/css/login_glass.css' %}">
+  <style>
+  body {
+    background: url("{% static 'dashboard/images/117646356_p0.png' %}") no-repeat center center fixed;
+    background-size: cover;
+  }
+</style>
+</head>
+<body>
+  <div class="wrapper">
+    <form method="POST" action="{% url 'login' %}">
+      {% csrf_token %}
+      <div class="brand-logo">
+        <img src="/media/productos/Vaca.png" style="width: 100px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5);">
+      </div>
+      <h2>VTS Login</h2>
+      
+      {% if form.errors %}
+        <p style="color: #ff4d4d; font-size: 0.9rem; margin-bottom: 10px;">Credenciales inválidas, Archimago.</p>
+      {% endif %}
+
+      <div class="input-field">
+        <input type="text" name="username" required>
+        <label>¿Su usuario?</label>
+      </div>
+      <div class="input-field">
+        <input type="password" name="password" required>
+        <label>¿Su contraseña?</label>
+      </div>
+      <div class="forget">
+        <label for="remember">
+          <input type="checkbox" id="remember">
+          <p>Recordarme</p>
+        </label>
+      </div>
+      <button type="submit">Entrar a la Forja</button>
+    </form>
+  </div>
+</body>
+
+</html>

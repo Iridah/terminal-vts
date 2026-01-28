@@ -1,0 +1,206 @@
+<!-- dashboard/templates/dashboard/analisis_pro.html -->
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="container-fluid" style="background-color: #f8f9fa; min-height: 100vh; padding-top: 20px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="font-weight-bold" style="color: #2c3e50;">
+            <i class="ti-stats-up text-primary mr-2"></i>Análisis Pro: El Corazón de La Forja
+        </h2>
+    </div>
+
+    {% if reporte.estado == 'ok' %}
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase font-weight-bold mb-1">Inversión (Costo)</div>
+                    <h3 class="font-weight-bold" style="color: #4B49AC;">${{ reporte.total_inversion|floatformat:0 }}</h3>
+                    <div class="progress mt-2" style="height: 4px;">
+                        <div class="progress-bar" style="width: 100%; background-color: #4B49AC;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase font-weight-bold mb-1">Venta Máx. Esperada</div>
+                    <h3 class="font-weight-bold" style="color: #248afd;">${{ reporte.venta_total_esperada|floatformat:0 }}</h3>
+                    <div class="progress mt-2" style="height: 4px;">
+                        <div class="progress-bar" style="width: 100%; background-color: #248afd;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase font-weight-bold mb-1">Retorno (Ganancia)</div>
+                    <h3 class="font-weight-bold" style="color: #71c016;">${{ reporte.total_ganancia|floatformat:0 }}</h3>
+                    <div class="progress mt-2" style="height: 4px;">
+                        <div class="progress-bar" style="width: 100%; background-color: #71c016;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase font-weight-bold mb-1">ROI Proyectado</div>
+                    <h3 class="font-weight-bold" style="color: #ffc107;">
+                        {% widthratio reporte.total_ganancia reporte.total_inversion 100 %}%
+                    </h3>
+                    <div class="progress mt-2" style="height: 4px;">
+                        <div class="progress-bar" style="width: {% widthratio reporte.total_ganancia reporte.total_inversion 100 %}%; background-color: #ffc107;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aca va el grafico del ROI Avanzado -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
+                <h5 class="font-weight-bold mb-4 text-dark">ROI PROYECTADO POR SECCIÓN (%)</h5>
+                <div style="height: 300px;">
+                    <canvas id="roiChartAnalisis"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
+                <h5 class="font-weight-bold mb-4 text-dark">Rendimiento por Sección</h5>
+                <div class="table-responsive">
+                    <table class="table table-borderless table-hover">
+                        <thead style="background-color: #f8f9fa; border-radius: 10px;">
+                            <tr class="text-muted small text-uppercase">
+                                <th>Sección</th>
+                                <th class="text-center">Items</th>
+                                <th class="text-right">Inversión</th>
+                                <th class="text-right">Ganancia</th>
+                                <th class="text-center">Eficiencia</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sec in reporte.secciones %}
+                            <tr style="border-bottom: 1px solid #eee;">
+                                <td class="font-weight-bold">{{ sec.seccion }}</td>
+                                <td class="text-center">{{ sec.inventario_real }}</td>
+                                <td class="text-right text-muted">${{ sec.inversion_total|floatformat:0 }}</td>
+                                <td class="text-right font-weight-bold text-success">+${{ sec.ganancia_potencial|floatformat:0 }}</td>
+                                <td class="text-center">
+                                    <span class="badge badge-pill {% if sec.roi_pro > 50 %}badge-success{% else %}badge-warning{% endif %}" style="padding: 5px 12px;">
+                                        {{ sec.roi_pro|floatformat:0 }}%
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm p-4" style="border-radius: 15px; background: linear-gradient(145deg, #ffffff, #f0f0f0);">
+                <h5 class="font-weight-bold mb-4 text-dark">Top 5 Illidari (Máximo Potencial)</h5>
+                <div class="list-group list-group-flush">
+                    {% for item in reporte.top_illidari %}
+                    <div class="list-group-item bg-transparent px-0 border-0 mb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div style="max-width: 70%;">
+                                <div class="font-weight-bold text-dark text-truncate">{{ item.producto }}</div>
+                                <div class="small text-muted">{{ item.seccion }}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-weight-bold text-primary">+${{ item.ganancia_potencial|floatformat:0 }}</div>
+                                <div class="small text-muted">Impacto</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning shadow-sm border-0" style="border-radius: 10px;">
+        <i class="ti-alert mr-2"></i> No hay datos suficientes para generar el análisis pro.
+    </div>
+    {% endif %} </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. Verificación de seguridad: ¿Llegaron los datos de Django?
+        const rawLabels = {{ secciones_labels|safe|default:"[]" }};
+        const rawData = {{ roi_data|safe|default:"[]" }};
+
+        // 2. Si no hay datos, no intentamos dibujar (Evita el cuadro blanco)
+        if (rawLabels.length === 0) {
+            console.error("Zuldazar Error: No se recibieron labels para el ROI.");
+            return;
+        }
+
+        // 3. Captura del Canvas correcto (Asegúrate que el ID coincida arriba)
+        const canvas = document.getElementById('roiChartAnalisis');
+        if (!canvas) {
+            console.error("Zuldazar Error: El ID 'roiChartAnalisis' no existe en el DOM.");
+            return;
+        }
+
+        const ctx = canvas.getContext('2d');
+        
+        // 4. Destruir gráfico previo si existe (Limpieza de memoria)
+        if (window.myRoiChart) {
+            window.myRoiChart.destroy();
+        }
+
+        // 5. Inicialización Forzada
+        window.myRoiChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: rawLabels,
+                datasets: [{
+                    label: 'ROI por Sección (%)',
+                    data: rawData,
+                    borderColor: '#4b49ac',
+                    backgroundColor: 'rgba(75, 73, 172, 0.2)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointRadius: 5,
+                    pointBackgroundColor: '#4b49ac'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { 
+                            callback: function(value) { return value + '%'; },
+                            color: '#6c757d'
+                        }
+                    },
+                    x: {
+                        ticks: { color: '#6c757d' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

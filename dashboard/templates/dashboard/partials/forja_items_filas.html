@@ -1,0 +1,69 @@
+{% for item in auditorias %}
+<tr>
+    <td class="ps-4">
+        <div class="d-flex align-items-center gap-3 position-relative">
+            <div class="position-relative">
+                {% if item.imagen and item.imagen.url %}
+                    <img src="{{ item.imagen.url }}" class="img-thumbnail-vts" alt="{{ item.sku }}">
+                {% else %}
+                    <div class="img-thumbnail-vts d-flex align-items-center justify-content-center bg-light text-muted">
+                        <i class="fa-solid fa-box shadow-none opacity-25"></i>
+                    </div>
+                {% endif %}
+                
+                <button onclick="abrirModalFoto('{{ item.sku }}', '{{ item.producto }}')" 
+                        class="btn btn-dark btn-sm position-absolute top-100 start-100 translate-middle rounded-circle p-1 shadow"
+                        style="width: 24px; height: 24px; font-size: 0.6rem; z-index: 10;">
+                    <i class="fas fa-camera"></i>
+                </button>
+            </div>
+            <span class="sku-badge">{{ item.sku }}</span>
+        </div>
+    </td>
+
+    <td>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <div class="fw-bold text-dark">{{ item.producto }}</div>
+                <small class="text-muted text-uppercase" style="font-size: 0.7rem;">{{ item.seccion }}</small>
+            </div>
+            <button onclick="abrirTrinidad('{{ item.sku }}', '{{ item.producto }}')" 
+                    class="btn btn-sm p-1 border-0 opacity-25 hover-opacity-100 transition-all"
+                    title="Operación de Salida (Trinidad)"
+                    style="background: transparent;">
+                <i class="fa-solid fa-house-chimney-window text-primary" style="font-size: 0.9rem;"></i>
+            </button>
+        </div> </td> <td class="text-center" style="width: 120px;">
+        {% with status=item.get_stock_status %}
+        <div class="progress mx-auto" 
+            style="height: 12px; width: 85px; background-color: rgba(0,0,0,0.05); border-radius: 20px; border: 1px solid rgba(0,0,0,0.03);" 
+            title="{{ status.label }}"> 
+            <div class="progress-bar rounded-pill shadow-none" 
+                style="width: 100%; background-color: {{ status.color }}; transition: width 0.4s ease;">
+            </div>
+        </div>
+        {% endwith %}
+    </td>
+
+    <td class="text-center">
+        <span class="fw-bold" style="color: {{ item.get_rentabilidad_status.color }}; font-size: 0.8rem;">
+            {{ item.get_rentabilidad_status.simbolo }} {{ item.get_rentabilidad_status.texto }}
+        </span>
+    </td>
+    
+    <td class="text-center pe-4" style="background: rgba(75, 73, 172, 0.02);">
+        <form action="{% url 'actualizar_inventario' item.sku %}" method="POST" class="d-flex align-items-center justify-content-center gap-2">
+            {% csrf_token %}
+            <input type="number" 
+                name="cantidad_nueva" 
+                class="stock-input-minimal rounded-1" 
+                placeholder="+0" 
+                oninput="validarStock(this)"
+                style="width: 50px; border-bottom: 2px solid #dee2e6;">
+            <button type="submit" class="btn-check-minimal border-0 bg-transparent p-0">
+                <i class="fa-solid fa-circle-plus fs-4" style="color: var(--skydash-blue); opacity: 0.8;"></i>
+            </button>
+        </form>
+    </td>
+</tr>
+{% endfor %}

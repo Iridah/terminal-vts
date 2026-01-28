@@ -1,0 +1,16 @@
+/* #static/dashboard/admin_custom.css */
+/* Cambia la barra superior a los colores de tu Sidebar */
+#header {
+    background: #4B49AC !important;
+    color: #fff !important;
+}
+
+/* Títulos y acentos en púrpura */
+.module h2, .module caption, .column_header {
+    background: #7978E9 !important;
+}
+
+/* Botón "Save" principal */
+.default {
+    background: #A435F0 !important;
+}

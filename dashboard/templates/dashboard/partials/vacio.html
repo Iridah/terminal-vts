@@ -1,0 +1,22 @@
+<header class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="m-0 fw-bold text-dark">{% block header_title %}{% endblock %}</h2>
+        <small class="text-secondary">VTS Engine v2.7.5 | Mardum</small>
+    </div>
+    
+    <div class="d-flex align-items-center gap-4">
+        <div class="v-store-brand">
+            <img src="/media/productos/Vaca.png" class="rounded-circle border border-2 border-primary" style="width: 55px; height: 55px; object-fit: cover;">
+        </div>
+    </div>
+
+    <div class="text-end border-end pe-4 d-none d-md-block">
+    <div id="live-clock" class="fw-bold fs-4" style="color: var(--skydash-blue);">00:00:00</div>
+    <div id="vts-weather" class="small text-muted">
+        <i class="fas fa-circle-notch fa-spin text-primary"></i> Sincronizando cielo...
+    </div>
+</div>
+</header>
+
+{% block content %}
+{% endblock %}

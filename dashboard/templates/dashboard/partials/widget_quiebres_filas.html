@@ -1,0 +1,17 @@
+{% for item in productos_quiebre %}
+<tr>
+    <td><strong>{{ item.producto }}</strong></td>
+    <td><code class="text-primary">{{ item.sku }}</code></td>
+    <td>
+        {% if item.inventario_real == 0 %}
+        <span class="badge bg-danger rounded-pill">QUIEBRE</span>
+        {% else %}
+        <span class="badge bg-warning text-dark rounded-pill">{{ item.inventario_real }} un.</span>
+        {% endif %}
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="3" class="text-center text-muted italic">No se encontraron tesoros en la Forja...</td>
+</tr>
+{% endfor %}
