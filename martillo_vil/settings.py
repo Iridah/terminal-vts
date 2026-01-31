@@ -155,3 +155,11 @@ LOGIN_REDIRECT_URL = 'home'
 # A dónde ir al cerrar sesión
 LOGOUT_REDIRECT_URL = 'login'
 
+# 18 horas en segundos (18 * 60 * 60)
+SESSION_COOKIE_AGE = 39600
+
+# La sesión expira al cerrar el navegador si no hay actividad
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False 
+
+# Guarda la sesión en cada petición para refrescar el contador de 18h
+SESSION_SAVE_EVERY_REQUEST = True

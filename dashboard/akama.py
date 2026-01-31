@@ -13,20 +13,25 @@ class AkamaStrategy:
     """
 
     @staticmethod
-    def normalizar_rut(rut_raw):
-        """Limpia RUTs: '12.345.678-k' -> '12345678K'"""
-        if not rut_raw: return None
-        return str(rut_raw).upper().replace(".", "").replace("-", "").strip()
+    def normalizar_rut(rut_valor): # Asegúrate de que el parámetro se llame así
+        if not rut_valor: 
+            return ""
+        # Limpiamos puntos, guiones y espacios
+        limpio = str(rut_valor).replace('.', '').replace('-', '').strip().upper()
+        return limpio
 
     @staticmethod
     def limpiar_monto(monto_raw):
-        """Limpia signos de peso y puntos de miles: '$1.200.000' -> 1200000.00"""
-        if not monto_raw: return Decimal("0.00")
-        clean = str(monto_raw).replace("$", "").replace(".", "").replace(",", ".").strip()
+        """Limpia todo y devuelve un entero puro para evitar inflación"""
+        if not monto_raw: return 0
+        # Quitamos $, puntos, comas y espacios
+        solo_numeros = str(monto_raw).split(',')[0] # Ignoramos cualquier cosa después de una coma
+        solo_numeros = ''.join(filter(str.isdigit, solo_numeros))
+        
         try:
-            return Decimal(clean)
+            return int(solo_numeros) if solo_numeros else 0
         except:
-            return Decimal("0.00")
+            return 0
 
     @staticmethod
     def parsear_fecha(fecha_raw):
@@ -72,9 +77,17 @@ class AkamaStrategy:
                         'nombres': row.get('nombres', '').strip(),
                         'cargo': row.get('cargo', '').strip(),
                         'sueldo_base': cls.limpiar_monto(row.get('sueldo')),
-                        'afp': row.get('afp', '').strip(),
-                        'salud': row.get('salud', '').strip(),
-                        'adicional_salud': cls.limpiar_monto(row.get('adicional', 0)),
+                        
+                        # --- NUEVA LÓGICA PREVISIONAL ---
+                        'afp': row.get('afp', 'MODELO').strip().upper(),
+                        'sistema_salud': row.get('sistema_salud', 'FONASA').strip().upper(),
+                        'plan_isapre_uf': Decimal(str(row.get('plan_uf', 0)).replace(',', '.')),
+                        'tipo_contrato': row.get('tipo_contrato', 'INDEFINIDO').strip().upper(),
+                        
+                        # --- ASIGNACIONES ---
+                        'asignacion_movilizacion': cls.limpiar_monto(row.get('movilizacion', 0)),
+                        'asignacion_colacion': cls.limpiar_monto(row.get('colacion', 0)),
+                        
                         'fecha_inicio': cls.parsear_fecha(row.get('inicio')),
                         'fecha_termino': cls.parsear_fecha(row.get('termino')),
                         'direccion': row.get('direccion', '').strip(),

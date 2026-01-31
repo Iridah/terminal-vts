@@ -3,20 +3,22 @@ import json
 import csv
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, F, ExpressionWrapper, FloatField, Q
 from django.db.models.functions import Coalesce
 from django.db import transaction
-from datetime import datetime
+from datetime import datetime, date
 
 # Modelos y Engine
 from .models import AuditoriaVTS, HistorialStock, LogRetirosDeducibles, RegistroLogs, Colaborador
 from .engine import FelEngine
 from .sargerite import sargerite_shield
 from .akama import AkamaStrategy
+from .eremita_engine import EremitaEngine
+from .oraculo import OraculoSargerite
 
 # =================================================================
 # I. SECCIÓN CORE: VISTAS PRINCIPALES Y ANÁLISIS
@@ -229,7 +231,6 @@ def lista_logs(request):
     logs = HistorialStock.objects.all().order_by('-fecha_ajuste')[:50]
     return render(request, 'dashboard/logs.html', {'logs': logs})
 
-@csrf_exempt
 @login_required
 def registrar_aporte_hogar(request):
     """API para descontar stock por aporte al hogar (Deducibles)"""
@@ -316,73 +317,6 @@ def check_logs_notificados(request):
         return JsonResponse({'alerta': True, 'producto': ultimo.producto, 'stock': ultimo.cantidad})
     return JsonResponse({'alerta': False})
 
-@sargerite_shield(permiso_requerido='puede_ver_dikbig')
-def importar_personal_dikbig(request):
-    if request.method == 'POST' and request.FILES.get('archivo_csv'):
-        try:
-            # 1. Lectura robusta con utf-8-sig (para la Ñ y tildes)
-            archivo_data = request.FILES['archivo_csv'].read().decode('utf-8-sig').splitlines()
-            lector = csv.reader(archivo_data)
-            
-            # Saltar la cabecera (rut, ap_p, ap_m, etc.)
-            next(lector, None) 
-
-            exitos = 0
-            with transaction.atomic():
-                for fila in lector:
-                    # Validación mínima de columnas (tu CSV tiene 15 columnas)
-                    if not fila or len(fila) < 11:
-                        continue
-                    
-                    # --- Lógica de Negocio VTS ---
-                    rut_limpio = fila[0].strip().replace('.', '')
-                    
-                    # Manejo de Adicional Salud (Fonasa o #N/A -> 0)
-                    adicional = fila[10].strip()
-                    if adicional.upper() in ['#N/A', '0', '']:
-                        adicional_valor = 0.0
-                    else:
-                        adicional_valor = float(adicional.replace(',', '.'))
-
-                    # Mapeo Directo al Modelo
-                    Colaborador.objects.update_or_create(
-                        rut=rut_limpio,
-                        defaults={
-                            'apellido_paterno': fila[1].strip(),
-                            'apellido_materno': fila[2].strip(),
-                            'nombres': fila[3].strip(),
-                            'cargo': fila[4].strip(),
-                            'sueldo_base': float(fila[5].strip() or 0),
-                            # Formato Chile: DDMMYYYY
-                            'fecha_inicio': datetime.strptime(fila[6].strip(), '%d%m%Y').date(),
-                            'fecha_termino': datetime.strptime(fila[7].strip(), '%d%m%Y').date() if (fila[7].strip().isdigit()) else None,
-                            'afp': fila[8].strip(),
-                            'salud': fila[9].strip(),
-                            'adicional_salud': adicional_valor,
-                            'direccion': fila[11].strip(),
-                            'comuna': fila[12].strip(),
-                            'correo_electronico': fila[13].strip(),
-                            'telefono': fila[14].strip(),
-                        }
-                    )
-                    exitos += 1
-
-            # SI ES HTMX (USANDO META PARA DJ6)
-            if 'HTTP_HX_REQUEST' in request.META:
-                return render(request, 'dashboard/partials/resultado_importacion.html', {
-                    'exitos': exitos
-                })
-
-            # Si por alguna razón no es HTMX, mensaje normal y render completo
-            messages.success(request, f"🛡️ Carga Atómica Exitosa: {exitos} registros.")
-
-        except Exception as e:
-            if 'HTTP_HX_REQUEST' in request.META:
-                return f'<div class="alert alert-danger">🚨 Error: {str(e)}</div>'
-            messages.error(request, f"🚨 Error: {str(e)}")
-
-    return render(request, 'dashboard/importar_personal.html')
-
 # =================================================================
 # VII. SECCIÓN RRHH: TANQUE DIKBIG
 # =================================================================
@@ -398,6 +332,7 @@ def importar_personal(request):
         
         # Invocamos al estratega Akama
         # Él se encarga del encoding, normalizar RUT y limpiar sueldos
+        
         resultado = AkamaStrategy.ejecucion_fila_a_fila(archivo)
         
         # Si la petición viene de HTMX, enviamos solo el parcial del resultado
@@ -427,11 +362,161 @@ def ficha_personal(request, rut=None):
 @sargerite_shield(permiso_requerido='puede_ver_dikbig')
 def guardar_ficha(request, rut):
     if request.method == 'POST':
-        paciente = get_object_or_404(Colaborador, rut=rut)
-        # Actualizamos los campos
-        paciente.nombres = request.POST.get('nombres')
-        paciente.sueldo_base = AkamaStrategy.limpiar_monto(request.POST.get('sueldo'))
-        paciente.save()
+        rut_clean = AkamaStrategy.normalizar_rut(rut)
+        paciente = get_object_or_404(Colaborador, rut=rut_clean)
         
-        # Respuesta HTMX: solo un mensaje de éxito
-        return HttpResponse('<div class="alert alert-success">🛡️ Expediente Actualizado en la Bóveda.</div>')
+        try:
+            # 1. Identificación y Cargo
+            paciente.cargo = request.POST.get('cargo')
+            
+            # 2. Financiero (Filtro Anti-Inflación)
+            sueldo_raw = request.POST.get('sueldo', '0')
+            # Usamos el nuevo Akama que devuelve solo enteros
+            paciente.sueldo_base = AkamaStrategy.limpiar_monto(sueldo_raw)
+            
+            # 3. Previsión y Salud (Sincronizado con Migración 0014)
+            paciente.afp = request.POST.get('afp')
+            paciente.sistema_salud = request.POST.get('sistema_salud') # Antes era 'salud'
+            
+            # Nuevo campo: Plan Isapre en UF
+            plan_raw = request.POST.get('plan_isapre_uf', '0').replace(',', '.')
+            paciente.plan_isapre_uf = float(plan_raw)
+            
+            # Nuevo campo: Tipo de Contrato (Clave para AFC)
+            paciente.tipo_contrato = request.POST.get('tipo_contrato', 'INDEFINIDO')
+            
+            # Nuevos campos: Asignaciones (No imponibles)
+            paciente.asignacion_movilizacion = AkamaStrategy.limpiar_monto(request.POST.get('movilizacion', '0'))
+            paciente.asignacion_colacion = AkamaStrategy.limpiar_monto(request.POST.get('colacion', '0'))
+            
+            # 4. Contacto (AQUÍ ESTABA EL ERROR DEL CORREO)
+            paciente.direccion = request.POST.get('direccion')
+            paciente.comuna = request.POST.get('comuna')
+            paciente.telefono = request.POST.get('telefono')
+            # El modelo usa 'correo_electronico', el form envía 'correo'
+            paciente.correo_electronico = request.POST.get('correo')
+            
+            # 5. Fechas
+            paciente.fecha_inicio = AkamaStrategy.parsear_fecha(request.POST.get('inicio'))
+            paciente.fecha_termino = AkamaStrategy.parsear_fecha(request.POST.get('termino'))
+
+            paciente.save()
+            return HttpResponse('<div class="alert alert-success animate__animated animate__headShake">🛡️ Expediente sincronizado correctamente.</div>')
+        
+        except Exception as e:
+            print(f"🚨 ERROR: {e}")
+            return HttpResponse(f'<div class="alert alert-danger">❌ Error: {str(e)}</div>', status=500)
+
+    return HttpResponse("Método no permitido", status=405)
+
+    
+@login_required
+@sargerite_shield(permiso_requerido='puede_ver_dikbig')
+def buscar_colaborador(request):
+    rut_query = request.GET.get('rut', '').replace('.', '').replace('-', '').strip()
+    rut_raw = request.GET.get('rut', '').strip()
+    
+    # 1. Usar Akama para que el RUT de búsqueda sea "oro puro"
+    rut_clean = AkamaStrategy.normalizar_rut(rut_raw)
+    
+    # 2. Intentar encontrar al paciente
+    try:
+        colaborador = Colaborador.objects.get(rut=rut_clean)
+        # Si lo encuentra, inyectamos el parcial con los datos
+        return render(request, 'dashboard/partials/_ficha_parcial.html', {'paciente': colaborador})
+    except Colaborador.DoesNotExist:
+        # Si no existe, devolvemos un mensaje amigable (o un botón para crearlo)
+        return HttpResponse('<div class="alert alert-warning">⚠️ No se encontró registro para el RUT: ' + rut_clean + '</div>') 
+
+@login_required
+@sargerite_shield(permiso_requerido='puede_ver_dikbig')
+def vista_mortaja(request, rut):
+    """Lienzo de la Mortaja - Nivel 2: Protegido por Sargerite"""
+    colaborador = get_object_or_404(Colaborador, rut=rut)
+    
+    # Invocamos al Eremita
+    res = EremitaEngine.calcular_mortaja_provisoria(colaborador)
+    
+    # Tiempo exacto para el Glassware
+    hoy = date.today()
+    inicio = colaborador.fecha_inicio
+    total_meses = (hoy.year - inicio.year) * 12 + hoy.month - inicio.month
+    
+    context = {
+        'colaborador': colaborador,
+        'anios': total_meses // 12,
+        'meses': total_meses % 12,
+        'sueldo_base': colaborador.sueldo_base,
+        'provision_anios': res['reserva_total'] - res['detalle']['vacaciones_proporcionales'],
+        'vacaciones_monto': res['detalle']['vacaciones_proporcionales'],
+        'total_reserva': res['reserva_total'],
+    }
+    # Verifica que la ruta al template sea correcta según tu estructura
+    return render(request, 'dashboard/mortaja_modal.html', context)
+
+@login_required
+def vista_sabana_digital(request):
+    """
+    Renderiza la Sabana de Remuneraciones protegida por el Eremita.
+    """
+    colaboradores = Colaborador.objects.all()
+    
+    # Invocamos al motor para blindar los sueldos y gratificaciones
+    df = EremitaEngine.procesar_sabana_completa(colaboradores)
+    
+    # Convertimos el DataFrame a lista de diccionarios (Pandas -> Python)
+    sabana_records = df.to_dict('records') if not df.empty else []
+
+    # Obtenemos indicadores para el encabezado
+    ind = OraculoSargerite.obtener_indicadores()
+
+    context = {
+        'sabana': sabana_records,
+        'uf_actual': ind['uf'],
+        'utm_actual': ind['utm']
+    }
+    
+    return render(request, 'dashboard/sabana_digital.html', context)
+
+@require_POST
+@login_required
+def actualizar_indicadores_view(request):
+    """Refresca el Oráculo on-demand"""
+    # Forzamos una nueva consulta al Oráculo (opcional si quieres lógica de caché luego)
+    ind = OraculoSargerite.obtener_indicadores()
+    
+    # Si es HTMX, devolvemos solo el fragmento del estatus del Oráculo
+    if 'HTTP_HX_REQUEST' in request.META:
+        return HttpResponse(f"""
+            <i class="fas fa-microchip"></i> 
+            Estado del Oráculo: <strong>UF: ${ind['uf']} | UTM: ${ind['utm']}</strong>
+        """)
+    
+    return redirect('sabana_digital')
+
+@login_required
+@sargerite_shield(permiso_requerido='puede_ver_dikbig')
+def generar_liquidacion_view(request, rut):
+    """
+    Genera la visualización de Partida Doble para un colaborador.
+    Esta vista SI lleva encabezado/pie de página.
+    """
+    rut_clean = AkamaStrategy.normalizar_rut(rut)
+    colaborador = get_object_or_404(Colaborador, rut=rut_clean)
+    
+    # 1. Consultar al Oráculo por la UF (Para la Isapre)
+    ind = OraculoSargerite.obtener_indicadores()
+    valor_uf = ind['uf']
+    
+    # 2. El Eremita mastica los números (Usando la función que armamos)
+    # Importante: Asegúrate de que EremitaEngine tenga la función calcular_liquidacion
+    resultados = EremitaEngine.calcular_liquidacion(colaborador, valor_uf)
+    
+    context = {
+        'colaborador': colaborador,
+        'res': resultados,
+        'uf_dia': valor_uf,
+        'fecha_emision': date.today(),
+    }
+    
+    return render(request, 'dashboard/liquidacion_detalle.html', context)

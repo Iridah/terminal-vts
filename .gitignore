@@ -5,6 +5,7 @@
 __pycache__/
 media/
 staticfiles/
+venv/
 *.bak
 token.json
 credentials.json
@@ -17,4 +18,5 @@ data_v.csv
 *.db.bak
 *.md.bak
 *.moo
-db_backup_.sqlite3db.sqlite3
+db_backup_.sqlite3
+db.sqlite3

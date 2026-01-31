@@ -1,34 +1,28 @@
-<div class="card shadow-lg border-0">
-    <div class="card-header bg-dark text-white d-flex justify-content-between">
-        <h5 class="mb-0">📋 Ficha del Colaborador: {{ paciente.rut }}</h5>
-        <span class="badge bg-primary">{{ paciente.cargo }}</span>
+<!-- dashboard/templates/dashboard/ficha_personal.html -->
+{% extends "dashboard/base.html" %} {% block content %}
+<div class="card p-4 shadow-sm border-0 animate__animated animate__fadeIn">
+    <div class="d-flex align-items-center mb-4">
+        <i class="fa-solid fa-address-card fa-2x text-primary me-3"></i>
+        <h2 class="mb-0">Expedientes de Personal</h2>
     </div>
-     <input type="text" id="rut_input" class="form-control" placeholder="12.345.678-K"> <!--<-- Posicion a verificar -->
-    <div class="card-body">
-        <form hx-post="{% url 'guardar_ficha' paciente.rut %}" hx-target="#mensaje-guardado">
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label>Nombres</label>
-                    <input type="text" name="nombres" class="form-control" value="{{ paciente.nombres }}">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label>Sueldo Base (Dikbig View)</label>
-                    <input type="text" name="sueldo" class="form-control" value="{{ paciente.sueldo_base }}">
-                </div>
-            </div>
-            <button type="submit" class="btn btn-success w-100">Actualizar Expediente</button>
-        </form>
-        <div id="mensaje-guardado" class="mt-3"></div>
+    
+    <div class="input-group mb-4 shadow-sm">
+        <span class="input-group-text bg-white border-end-0">
+            <i class="fa-solid fa-magnifying-glass text-muted"></i>
+        </span>
+        <input type="text" 
+            id="rut_search"  
+            name="rut" 
+            class="form-control border-start-0" 
+            placeholder="Ingrese RUT..."
+            hx-get="{% url 'buscar_colaborador' %}" 
+            hx-target="#resultado-busqueda" 
+            hx-trigger="input changed delay:500ms"
+            hx-boost="false">
+        </div>
+
+    <div id="resultado-busqueda" class="mt-3">
+        <p class="text-muted text-center italic">Ingrese un RUT para ver el expediente...</p>
     </div>
 </div>
-
-<script>
-document.getElementById('rut_input').addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\./g, '').replace('-', '');
-    if (value.length > 1) {
-        let cuerpo = value.slice(0, -1);
-        let dv = value.slice(-1).toUpperCase();
-        e.target.value = cuerpo + '-' + dv; // Visual simple
-    }
-});
-</script>
+{% endblock %}

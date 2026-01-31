@@ -1,0 +1,55 @@
+<div class="contenedor-liquidacion">
+    
+    <section class="header-vts">
+        <h2>{{ colaborador.nombre_completo }}</h2>
+        <p>RUT: {{ colaborador.rut }} | Cargo: {{ colaborador.cargo }}</p>
+        <span class="badge-contrato">{{ colaborador.tipo_contrato }}</span>
+    </section>
+
+    <div class="partida-doble">
+        <div class="columna haberes">
+            <h3><i class="fas fa-plus-circle"></i> Haberes Imponibles</h3>
+            <div class="item">
+                <span>Sueldo Base</span>
+                <strong>$ {{ colaborador.sueldo_base }}</strong>
+            </div>
+            <div class="total-caja-verde">
+                <span>TOTAL HABERES</span>
+                <strong id="total-haberes">$ 0</strong>
+            </div>
+        </div>
+
+        <div class="columna descuentos">
+            <h3><i class="fas fa-minus-circle"></i> Descuentos Legales</h3>
+            
+            <div class="item tooltip">
+                <span>AFP {{ colaborador.afp }}</span>
+                <strong>$ 0</strong>
+                <span class="tooltiptext">Calculado: 10% + comisión %</span>
+            </div>
+
+            <div class="item tooltip">
+                <span>Salud ({{ colaborador.sistema_salud }})</span>
+                <strong>$ 0</strong>
+                {% if colaborador.sistema_salud == 'ISAPRE' %}
+                    <span class="tooltiptext">Plan: {{ colaborador.plan_isapre_uf }} UF</span>
+                {% endif %}
+            </div>
+
+            <div class="total-caja-roja">
+                <span>TOTAL DESCUENTOS</span>
+                <strong id="total-descuentos">$ 0</strong>
+            </div>
+        </div>
+    </div>
+
+    <section class="footer-liquidacion">
+        <div class="sueldo-liquido">
+            <span>ALCANCE LÍQUIDO</span>
+            <div class="monto-final">
+                <i class="fas fa-money-bill-wave"></i>
+                <span id="liquido-final">$ 0</span>
+            </div>
+        </div>
+    </section>
+</div>

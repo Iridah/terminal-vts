@@ -24,11 +24,14 @@ def sargerite_shield(permiso_requerido=None):
         @wraps(view_func)
         def _wrapped_view(request, *args, **kwargs):
             from .models import PerfilVTS
-            token = request.headers.get('X-Sargerite-Token')
+            token = request.session.get('sargerite_token') or request.headers.get('X-Sargerite-Token')
             ip = request.META.get('REMOTE_ADDR')
 
             # Print de auditoría SEGURO (dentro de la función)
             print(f"🔍 AUDITORÍA: Token '{token}' desde IP {ip}")
+
+            if not token:
+                return JsonResponse({'status': 'error', 'msg': 'Falta Token de Auditoría'}, status=401)
 
             try:
                 perfil = PerfilVTS.objects.get(sargerite_token=token)

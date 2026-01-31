@@ -1,0 +1,59 @@
+{% extends "dashboard/base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div id="oracle-status" class="alert bg-dark border-info text-info d-flex justify-content-between align-items-center shadow-sm mb-4">
+        <span><i class="fas fa-microchip me-2"></i> Oráculo: <strong>UF ${{ uf_actual }}</strong> | <strong>UTM ${{ utm_actual }}</strong></span>
+        <button hx-post="{% url 'actualizar_indicadores' %}" hx-target="#oracle-status" hx-swap="outerHTML" class="btn btn-sm btn-outline-info">
+            <i class="fas fa-sync-alt"></i> Sincronizar
+        </button>
+    </div>
+
+    <div class="card bg-dark border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle mb-0">
+                    <thead class="bg-black text-uppercase small" style="letter-spacing: 1px;">
+                        <tr>
+                            <th class="ps-4 py-3" style="width: 250px;">Colaborador</th>
+                            <th class="text-info border-start border-secondary">Sueldo Base</th>
+                            <th class="text-info">Gratificación</th>
+                            <th class="text-info">Movilidad</th>
+                            <th class="text-danger border-start border-secondary">Leyes Sociales</th>
+                            <th class="text-danger">Otros Descuentos</th>
+                            <th class="text-success border-start border-secondary">Líquido</th>
+                            <th class="text-center pe-4">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fila in sabana %}
+                        <tr class="border-bottom border-secondary">
+                            <td class="ps-4">
+                                <div class="fw-bold">{{ fila.nombres }} {{ fila.apellido_paterno }}</div>
+                                <small class="text-muted">{{ fila.rut }}</small>
+                            </td>
+                            <td class="text-info border-start border-secondary opacity-75">${{ fila.sueldo_base|floatformat:0 }}</td>
+                            <td class="text-info opacity-75">${{ fila.gratificacion|floatformat:0 }}</td>
+                            <td class="text-info opacity-75">${{ fila.movilizacion_minima|floatformat:0 }}</td>
+                            <td class="text-danger border-start border-secondary opacity-50">$---</td>
+                            <td class="text-danger opacity-50">$---</td>
+                            <td class="fw-bold text-success border-start border-secondary">${{ fila.sueldo_base|floatformat:0 }}*</td>
+                            <td class="text-center pe-4">
+                                <button class="btn btn-sm btn-outline-danger" 
+                                        hx-get="{% url 'ver_mortaja' fila.rut %}" 
+                                        hx-target="body" hx-swap="beforeend">
+                                    <i class="fas fa-skull"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="mt-3 text-muted small ps-2">
+        <i class="fas fa-info-circle me-1"></i> * Líquido actual calculado solo con haberes imponibles (Deducciones en espera).
+    </div>
+</div>
+{% endblock %}

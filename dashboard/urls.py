@@ -45,7 +45,23 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='dashboard/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('api/check-logs/', views.check_logs_notificados, name='check_logs'),
-    path('personal/importar/', views.importar_personal_dikbig, name='importar_personal'),
+    path('personal/importar/', views.importar_personal, name='importar_personal'),
+    # FICHA DE PERSONAL
+    # Vista principal (el contenedor blanco hueso)
+    path('personal/ficha/', views.ficha_personal, name='ficha_personal'),
+    
+    # Búsqueda y carga del parcial (lo que HTMX inyecta)
+    path('personal/buscar/', views.buscar_colaborador, name='buscar_colaborador'),
+    
+    # Guardado de cambios
+    path('personal/guardar/<str:rut>/', views.guardar_ficha, name='guardar_ficha'),
+
+    # Esta es la que te está pidiendo el error:
+    path('sabana-digital/', views.vista_sabana_digital, name='sabana_digital'), 
+    
+    # Y esta es la del modal que ya tenías:
+    path('mortaja/<str:rut>/', views.vista_mortaja, name='ver_mortaja'),
+    path('actualizar-indicadores/', views.actualizar_indicadores_view, name='actualizar_indicadores'),
     
     # =================================================================
     # PASILLO 6: IMAGENES

@@ -4,18 +4,17 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="{% static 'dashboard/js/htmx.min.js' %}"></script>
     {% if user.is_authenticated %}
         <meta name="sargerite-token" content="{{ user.perfil.sargerite_token }}">
     {% endif %}
     <title>VTS - MARTILLO VIL</title>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'dashboard/css/style.css' %}?v=1.1">
+    <link rel="stylesheet" href="{% static 'dashboard/css/style.css' %}?v=MONOLITO_V3_FINAL">
 </head>
-<body>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     <aside class="sidebar">
         <div class="brand">
             <i class="fa-solid fa-hammer"></i> <span>VTS-MV</span>
@@ -28,21 +27,38 @@
                 <i class="fa-solid fa-boxes-stacked"></i> <span>La Forja</span>
             </a>
             <a href="{% url 'analisis_pro' %}" class="nav-item {% if request.resolver_match.url_name == 'analisis_pro' %}active{% endif %}">
-                <i class="fa-solid fa-chart-line"></i> <span>Análisis Pro</span>
+                    <i class="fa-solid fa-chart-line"></i> <span>Análisis Pro</span>
             </a>
             <a href="{% url 'lista_logs' %}" class="nav-item {% if request.resolver_match.url_name == 'lista_logs' %}active{% endif %}">
                 <i class="fa-solid fa-clock-rotate-left"></i> <span>Logs Sistema</span>
             </a>
 
             {% if user.perfil.puede_ver_dikbig %}
-            <a href="#" 
-            hx-get="{% url 'importar_personal' %}" 
-            hx-target="#main-content-area" 
-            hx-push-url="true"
-            class="nav-item {% if 'importar' in request.resolver_match.url_name %}active{% endif %}">
-                <i class="fa-solid fa-users-gear"></i> <span>Personal</span>
-            </a>
-            {% endif %}
+            <div class="nav-item">
+                <a href="#collapsePersonal" data-bs-toggle="collapse" class="nav-link collapsed">
+                    <i class="fa-solid fa-users-gear"></i>
+                    <span>Personal DIKBIG</span>
+                    <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                </a>
+            </div>
+            <div class="collapse" id="collapsePersonal">
+                <div class="sub-nav-vertical">
+                    <a href="{% url 'importar_personal' %}" class="sub-link-vts">
+                        <i class="fa-solid fa-file-import"></i> <span>Forja de Datos</span>
+                    </a>
+                    <a href="{% url 'ficha_personal' %}" class="sub-link-vts">
+                        <i class="fa-solid fa-address-card"></i> <span>Expedientes</span>
+                    </a>
+                    <a href="{% url 'sabana_digital' %}" class="sub-item-link">
+                        <i class="fa-solid fa-skull-crossbones text-danger"></i> <span>La Mortaja</span>
+                    </a>
+                    </a>
+                    <a href="#" class="mini-btn disabled">
+                        <i class="fa-solid fa-shield-heart"></i>
+                    </a>
+                </div>
+            </div>
+        {% endif %}
         </nav>
 
 
@@ -66,12 +82,24 @@
                     </div>
                 </div>
 
+                <div class="mt-auto border-top">
+                    <a href="javascript:void(0)" 
+                    hx-post="{% url 'logout' %}" 
+                    hx-target="body" 
+                    hx-push-url="true"
+                    class="nav-item text-danger">
+                        <i class="fa-solid fa-right-from-bracket" style="color: #dc3545 !important;"></i>
+                        <span>Cerrar Sesión</span>
+                    </a>
+                </div>
+
                 <div class="v-store-brand">
                     <img src="/media/productos/Vaca.png" 
                     alt="V-Store" 
                     class="rounded-circle border border-2 border-primary" 
                     style="width: 55px; height: 55px; object-fit: cover;">
                 </div>
+
             </div>
         </header>
         {% block content %}
@@ -81,5 +109,25 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="{% static 'dashboard/js/main.js' %}"></script>
+
+    <script>
+    document.body.addEventListener('htmx:beforeRequest', function(evt) {
+        // Intentamos rescatar la ruta desde tres lugares distintos que usa HTMX
+    const path = evt.detail.pathInfo?.path 
+               || evt.detail.requestConfig?.path 
+               || evt.target.getAttribute('hx-post') 
+               || evt.target.getAttribute('hx-get') 
+               || 'Ruta Interna';
+
+    console.log("🚀 MARTILLO VIL DISPARANDO A:", path);
+    });
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+        console.log("✅ HTMX RECIBIÓ RESPUESTA");
+    });
+    document.body.addEventListener('htmx:responseError', function(evt) {
+        console.error("❌ ERROR DE RESPUESTA:", evt.detail.xhr.status);
+    });
+</script>
+
 </body>
 </html>

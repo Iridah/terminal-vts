@@ -9,6 +9,7 @@ import uuid
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.contrib.auth.signals import user_logged_in
 
 # =================================================================
 # I. CLASE MAESTRA: AUDITORÍA VTS (EL CORAZÓN)
@@ -195,34 +196,95 @@ class PerfilVTS(models.Model):
     def __str__(self):
         return f"[{self.rol}] {self.user.username}"
 
+# SEÑAL 1: Creación y Sincronización de Perfil
 @receiver(post_save, sender=User)
-def crear_perfil_automatico(sender, instance, created, **kwargs):
+def manejar_perfil_usuario(sender, instance, created, **kwargs):
     if created:
-        PerfilVTS.objects.create(user=instance)
+        # Si es el primer usuario (Superuser), le damos rango de Boss
+        rol_inicial = 'Boss' if instance.is_superuser else 'Vendedor'
+        PerfilVTS.objects.create(user=instance, rol=rol_inicial)
+    else:
+        # Asegura que el perfil se guarde si el User se actualiza
+        instance.perfil.save()
+
+# SEÑAL 2: Inyección de Token Sargerite (La llave del 401)
+@receiver(user_logged_in)
+def inyectar_sargerite_token(sender, request, user, **kwargs):
+    """
+    Cuando entras al motor VTS, esta señal captura tu UUID único 
+    y lo mete en la sesión del navegador para que el Escudo lo vea.
+    """
+    if hasattr(user, 'perfil'):
+        # 1. Convertimos a texto PRIMERO
+        token_str = str(user.perfil.sargerite_token)
+        
+        # 2. Guardamos en la sesión
+        request.session['sargerite_token'] = token_str
+        
+        # 3. Print SEGURO (sin recortes raros)
+        print(f"🛡️ SARGERITE: Token inyectado para {user.username}")
+
+# =================================================================
+# IV. Logica de Personal
+# =================================================================
+# dashboard/models.py (Solo el bloque de Colaborador actualizado)
 
 class Colaborador(models.Model):
-    """Tanque Dikbig: Gestión de Personal Cifrada"""
+    """
+    Tanque Dikbig: Gestión de Personal Cifrada.
+    Diseñado para integrarse con el EremitaEngine y la visualización de Partida Doble.
+    """
+    # --- Identidad Básica ---
     rut = models.CharField(max_length=12, primary_key=True)
     apellido_paterno = models.CharField(max_length=100)
     apellido_materno = models.CharField(max_length=100)
     nombres = models.CharField(max_length=200)
     cargo = models.CharField(max_length=100)
-    
-    # Datos Sensibles
-    sueldo_base = models.DecimalField(max_digits=12, decimal_places=2)
-    afp = models.CharField(max_length=50)
-    salud = models.CharField(max_length=50) 
-    adicional_salud = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    
-    # --- CAMPOS RESCATADOS PARA LA IMPORTACIÓN ---
-    direccion = models.CharField(max_length=255, blank=True, null=True)
-    comuna = models.CharField(max_length=100, blank=True, null=True)
     correo_electronico = models.EmailField(blank=True, null=True)
-    telefono = models.CharField(max_length=20, blank=True, null=True)
     
-    # Fechas de Contrato
+    # --- Estructura Contractual (Crítico para AFC) ---
+    TIPO_CONTRATO_CHOICES = [
+        ('INDEFINIDO', 'Indefinido'),
+        ('PLAZO_FIJO', 'Plazo Fijo'),
+    ]
+    tipo_contrato = models.CharField(
+        max_length=20, 
+        choices=TIPO_CONTRATO_CHOICES, 
+        default='INDEFINIDO',
+        help_text="Determina si aplica descuento AFC (0,6%) al trabajador."
+    )
     fecha_inicio = models.DateField()
     fecha_termino = models.DateField(null=True, blank=True)
+
+    # --- Configuración Financiera (Haberes) ---
+    sueldo_base = models.DecimalField(max_digits=12, decimal_places=2)
+    asignacion_movilizacion = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    asignacion_colacion = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+
+    # --- Configuración Previsional (Descuentos) ---
+    # AFP: Vinculado a la tabla de PreviRed que sniffaremos luego
+    AFP_CHOICES = [
+        ('CAPITAL', 'Capital'), ('CUPRUM', 'Cuprum'), ('HABITAT', 'Habitat'),
+        ('PLANVITAL', 'PlanVital'), ('PROVIDA', 'ProVida'), ('MODELO', 'Modelo'), ('UNO', 'Uno')
+    ]
+    afp = models.CharField(max_length=20, choices=AFP_CHOICES, default='MODELO')
+    
+    # Salud: Lógica Isapre vs Fonasa
+    SISTEMA_SALUD_CHOICES = [('FONASA', 'Fonasa 7%'), ('ISAPRE', 'Isapre (Plan UF)')]
+    sistema_salud = models.CharField(max_length=10, choices=SISTEMA_SALUD_CHOICES, default='FONASA')
+    
+    # El "Plan UF" que alimentará el Adicional Salud
+    plan_isapre_uf = models.DecimalField(
+        max_digits=6, 
+        decimal_places=4, 
+        default=0.0000, 
+        help_text="Si es Isapre, ingresar valor del plan en UF. Si es Fonasa, dejar en 0."
+    )
+
+    # --- Otros Datos ---
+    direccion = models.CharField(max_length=255, blank=True, null=True)
+    comuna = models.CharField(max_length=100, blank=True, null=True)
+    telefono = models.CharField(max_length=20, blank=True, null=True)
 
     class Meta:
         verbose_name = "Colaborador"
@@ -230,12 +292,7 @@ class Colaborador(models.Model):
 
     def __str__(self):
         return f"{self.rut} - {self.apellido_paterno}, {self.nombres}"
-    
-# @login_required
-# @sargerite_shield(permiso_requerido='puede_ver_dikbig')
-def importar_personal(request):
-    # Akama entra en acción solo si el escudo lo permite
-    if request.method == 'POST':
-        archivo = request.FILES.get('archivo_csv')
-        res = AkamaStrategy.ejecucion_fila_a_fila(archivo)
-        return render(request, 'dashboard/partials/resultado_carga.html', {'res': res})
+
+    @property
+    def nombre_completo(self):
+        return f"{self.nombres} {self.apellido_paterno} {self.apellido_materno}"
