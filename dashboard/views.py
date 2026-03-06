@@ -337,7 +337,7 @@ def importar_personal(request):
         
         # Si la petición viene de HTMX, enviamos solo el parcial del resultado
         if 'HTTP_HX_REQUEST' in request.META:
-            return render(request, 'dashboard/partials/resultado_carga.html', {
+            return render(request, 'dashboard/partials/resultado_importacion.html', {
                 'res': resultado
             })
         

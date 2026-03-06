@@ -63,39 +63,39 @@ class AkamaStrategy:
         reporte = {'creados': 0, 'actualizados': 0, 'errores': []}
 
         for fila, row in enumerate(reader, start=1):
-            try:
-                rut_clean = cls.normalizar_rut(row.get('rut'))
-                if not rut_clean:
-                    raise ValueError(f"Fila {fila}: RUT ausente")
+        try:
+            # LIMPIEZA ATÓMICA: Creamos un nuevo diccionario con llaves limpias
+            # Esto quita todo lo que esté entre paréntesis y espacios
+            row_clean = {k.split('(')[0].strip(): v for k, v in row.items()}
+            
+            rut_clean = cls.normalizar_rut(row_clean.get('rut'))
+            if not rut_clean:
+                raise ValueError(f"Fila {fila}: RUT ausente")
 
-                # Actualizar o Crear (Upsert)
-                colaborador, created = Colaborador.objects.update_or_create(
-                    rut=rut_clean,
-                    defaults={
-                        'apellido_paterno': row.get('ap_p', '').strip(),
-                        'apellido_materno': row.get('ap_m', '').strip(),
-                        'nombres': row.get('nombres', '').strip(),
-                        'cargo': row.get('cargo', '').strip(),
-                        'sueldo_base': cls.limpiar_monto(row.get('sueldo')),
-                        
-                        # --- NUEVA LÓGICA PREVISIONAL ---
-                        'afp': row.get('afp', 'MODELO').strip().upper(),
-                        'sistema_salud': row.get('sistema_salud', 'FONASA').strip().upper(),
-                        'plan_isapre_uf': Decimal(str(row.get('plan_uf', 0)).replace(',', '.')),
-                        'tipo_contrato': row.get('tipo_contrato', 'INDEFINIDO').strip().upper(),
-                        
-                        # --- ASIGNACIONES ---
-                        'asignacion_movilizacion': cls.limpiar_monto(row.get('movilizacion', 0)),
-                        'asignacion_colacion': cls.limpiar_monto(row.get('colacion', 0)),
-                        
-                        'fecha_inicio': cls.parsear_fecha(row.get('inicio')),
-                        'fecha_termino': cls.parsear_fecha(row.get('termino')),
-                        'direccion': row.get('direccion', '').strip(),
-                        'comuna': row.get('comuna', '').strip(),
-                        'correo_electronico': row.get('correo', '').strip(),
-                        'telefono': row.get('telefono', '').strip(),
-                    }
-                )
+            # Actualizar o Crear (Upsert)
+            colaborador, created = Colaborador.objects.update_or_create(
+                rut=rut_clean,
+                defaults={
+                    'apellido_paterno': row_clean.get('ap_p', '').strip(),
+                    'apellido_materno': row.get('ap_m', '').strip(),
+                    'nombres': row_clean.get('nombres', '').strip(),
+                    'cargo': row.get('cargo', '').strip(),
+                    'sueldo_base': cls.limpiar_monto(row_clean.get('sueldo')),
+                    'afp': row.get('afp', 'MODELO').strip().upper(),
+                    'sistema_salud': row.get('sistema_salud', 'FONASA').strip().upper(),
+                    # Usamos .get('plan_uf') que es el nombre limpio de la cabecera
+                    'plan_isapre_uf': Decimal(str(row_clean.get('plan_uf', 0)).replace(',', '.')),
+                    'tipo_contrato': row.get('tipo_contrato', 'INDEFINIDO').strip().upper(),
+                    'asignacion_movilizacion': cls.limpiar_monto(row.get('movilizacion', 0)),
+                    'asignacion_colacion': cls.limpiar_monto(row.get('colacion', 0)),
+                    'fecha_inicio': cls.parsear_fecha(row_clean.get('inicio')),
+                    'fecha_termino': cls.parsear_fecha(row.get('termino')),
+                    'direccion': row.get('direccion', '').strip(),
+                    'comuna': row.get('comuna', '').strip(),
+                    'correo_electronico': row.get('correo', '').strip(),
+                    'telefono': row.get('telefono', '').strip(),
+                }
+            )
                 
                 if created: reporte['creados'] += 1
                 else: reporte['actualizados'] += 1
