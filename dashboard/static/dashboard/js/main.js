@@ -70,3 +70,31 @@ document.body.addEventListener('input', function(e) {
     }
 });
 
+// --- TRINIDAD: Movimientos de Stock ---
+function abrirTrinidad(sku, nombre, stockActual) {
+    // Inyectar datos en el modal
+    document.getElementById('trinidadSku').value = sku;
+    document.getElementById('trinidadNombre').textContent = nombre;
+    document.getElementById('trinidadStock').textContent = stockActual + ' unidades';
+    document.getElementById('trinidadCant').value = 1;
+
+    // Actualizar el hx-post con el SKU real
+    const form = document.getElementById('formTrinidad');
+    form.setAttribute('hx-post', `/registrar-movimiento/${sku}/`);
+    htmx.process(form); // Re-procesar HTMX con el nuevo atributo
+
+    // Abrir modal
+    const modal = new bootstrap.Modal(document.getElementById('modalTrinidadSalida'));
+    modal.show();
+}
+
+// --- MODAL FOTO ---
+function abrirModalFoto(sku, nombre) {
+    document.getElementById('fotoNombreProd').textContent = nombre;
+    const form = document.getElementById('formFoto');
+    form.setAttribute('action', `/inventario/${sku}/subir-foto/`);
+
+    const modal = new bootstrap.Modal(document.getElementById('modalCargaImagen'));
+    modal.show();
+}
+

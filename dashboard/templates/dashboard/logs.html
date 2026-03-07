@@ -30,28 +30,31 @@
                         </thead>
                         <tbody>
                             {% for log in logs %}
-                            <tr>
-                                <td class="font-weight-bold">{{ log.fecha_ajuste|date:"d/m/Y H:i" }}</td>
-                                <td><label class="badge badge-outline-primary">{{ log.usuario }}</label></td>
-                                <td><code>{{ log.sku }}</code></td>
-                                <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis;">{{ log.producto }}</td>
-                                <td>
-                                    <span class="text-muted">{{ log.stock_anterior }}</span> 
-                                    <i class="fa-solid fa-right-long mx-2 text-primary"></i> 
-                                    <span class="font-weight-bold" style="font-size: 1.1em;">{{ log.stock_nuevo }}</span>
-                                </td>
-                                <td>
-                                    {% if log.stock_nuevo < log.stock_anterior %}
-                                        <i class="fa-solid fa-arrow-down text-danger"></i> <small class="text-danger">Merma</small>
-                                    {% elif log.stock_nuevo > log.stock_anterior %}
-                                        <i class="fa-solid fa-arrow-up text-success"></i> <small class="text-success">Ingreso</small>
-                                    {% else %}
-                                        <i class="fa-solid fa-equals text-muted"></i> <small class="text-muted">Sin cambio</small>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
+                                <tr>
+                                    <td class="font-weight-bold">{{ log.fecha_exacta|date:"d/m/Y H:i" }}</td>
+                                    <td><label class="badge badge-outline-primary">{{ log.operador.username|default:"—" }}</label></td>
+                                    <td><code class="text-primary">{{ log.sku }}</code></td>
+                                    <td>{{ log.producto }}</td>
+                                    <td>
+                                        <i class="fa-solid fa-right-long mx-2 text-primary"></i>
+                                        <span class="fw-bold">{{ log.cantidad }}</span>
+                                    </td>
+                                    <td>
+                                        {% if log.tipo_accion == "VENTA" %}
+                                            <i class="fa-solid fa-arrow-down text-danger"></i> <small class="text-danger">Venta</small>
+                                        {% elif log.tipo_accion == "INGRESO" %}
+                                            <i class="fa-solid fa-arrow-up text-success"></i> <small class="text-success">Ingreso</small>
+                                        {% elif log.tipo_accion == "MERMA" %}
+                                            <i class="fa-solid fa-triangle-exclamation text-warning"></i> <small class="text-warning">Merma</small>
+                                        {% elif log.tipo_accion == "APORTE" %}
+                                            <i class="fa-solid fa-house text-info"></i> <small class="text-info">Aporte Hogar</small>
+                                        {% else %}
+                                            <i class="fa-solid fa-equals text-muted"></i> <small class="text-muted">{{ log.tipo_accion }}</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
                                 <td colspan="6" class="text-center py-5">
                                     <i class="fa-solid fa-ghost fa-3x mb-3 text-light"></i>
                                     <p class="text-muted">La Caja Negra está vacía. ¡Ve a La Forja y haz tu primer ajuste!</p>

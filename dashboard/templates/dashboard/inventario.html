@@ -60,40 +60,52 @@
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content border-0 shadow-lg">
                         <div class="modal-header bg-dark text-white border-0">
-                            <h5 class="modal-title"><i class="fa-solid fa-cart-arrow-down me-2"></i> Registrar Salida de Stock</h5>
+                            <h5 class="modal-title">
+                                <i class="fa-solid fa-cart-arrow-down me-2"></i> Registrar Movimiento
+                            </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body p-4">
-                            <form id="formTrinidad" 
-                                hx-post="{% url 'registrar_movimiento_htmx' 'SKU_DUMMY' %}" 
-                                hx-target="#tabla-productos-body" 
-                                hx-swap="innerHTML">
+                            <form id="formTrinidad"
+                                hx-post=""
+                                hx-target="#tabla-productos-body"
+                                hx-swap="innerHTML"
+                                hx-on::after-request="bootstrap.Modal.getInstance(document.getElementById('modalTrinidadSalida')).hide()">
                                 {% csrf_token %}
                                 <input type="hidden" id="trinidadSku" name="sku">
-                                
+
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Producto:</label>
                                     <div id="trinidadNombre" class="p-2 bg-light rounded text-muted small"></div>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Tipo de Salida:</label>
+                                    <label class="form-label fw-bold">Stock actual:</label>
+                                    <div id="trinidadStock" class="p-2 bg-light rounded text-dark small fw-bold"></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tipo de Movimiento:</label>
                                     <select class="form-select border-2" name="tipo" id="tipoSalida" required>
-                                        <option value="venta" selected>🧾 Venta (Boleta/Factura/Interno)</option>
+                                        <option value="venta" selected>🧾 Venta</option>
                                         <option value="merma">❌ Merma (Daño/Vencimiento)</option>
+                                        <option value="ingreso">📦 Ingreso Stock</option>
                                         {% if user.is_staff %}
                                             <option value="aporte">🏠 Aporte Hogar (Deducible)</option>
-                                            <option value="ingreso">📦 Ingreso Stock (Ajuste)</option>
                                         {% endif %}
                                     </select>
                                 </div>
 
-                                <div class="mb-3">
+                                <div class="mb-4">
                                     <label class="form-label fw-bold">Cantidad:</label>
-                                    <input type="number" name="cantidad" class="form-control form-control-lg text-center" id="trinidadCant" value="1" min="1">
+                                    <input type="number" name="cantidad"
+                                        class="form-control form-control-lg text-center"
+                                        id="trinidadCant" value="1" min="1">
                                 </div>
 
-                                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Confirmar Operación</button>
+                                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                                    Confirmar Operación
+                                </button>
                             </form>
                         </div>
                     </div>

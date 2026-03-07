@@ -45,6 +45,22 @@ class AuditoriaAdmin(admin.ModelAdmin):
             'all': ('dashboard/css/style.css', 'dashboard/css/admin_custom.css')
         }
 
+    def save_model(self, request, obj, form, change):
+        if change and 'inventario_real' in form.changed_data:
+            stock_anterior = AuditoriaVTS.objects.get(pk=obj.pk).inventario_real
+            super().save_model(request, obj, form, change)
+            diferencia = obj.inventario_real - stock_anterior
+            tipo = 'INGRESO' if diferencia > 0 else 'MERMA'
+            RegistroLogs.objects.create(
+                sku=obj.sku,
+                producto=obj.producto,
+                tipo_accion=f'{tipo} [SUDO]',
+                cantidad=abs(diferencia),
+                operador=request.user
+            )
+        else:
+            super().save_model(request, obj, form, change)
+
     # 🧮 CÁLCULO 1: Unidades
     def diferencia_unidades(self, obj):
         # Protección contra None types por si stock_sistema viene vacío

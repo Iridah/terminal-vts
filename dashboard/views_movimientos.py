@@ -31,7 +31,7 @@ def registrar_movimiento_triada(request):
 
 @login_required
 def lista_logs(request):
-    logs = HistorialStock.objects.all().order_by('-fecha_ajuste')[:50]
+    logs = RegistroLogs.objects.all().order_by('-fecha_exacta')[:50]
     return render(request, 'dashboard/logs.html', {'logs': logs})
 
 @login_required
