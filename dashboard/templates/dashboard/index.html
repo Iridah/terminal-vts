@@ -6,21 +6,20 @@
 
 {% block content %}
 <div class="row g-4">
+
+    <!-- Gráfico Valor por Sección -->
     <div class="col-lg-7">
-        <div class="card p-4 h-100">
-            <h4 class="fw-bold mb-4" style="color: var(--skydash-blue);">
+        <div class="card p-4">
+            <h4 class="fw-bold mb-3" style="color: var(--skydash-blue);">
                 <i class="fa-solid fa-money-bill-trend-up me-2"></i>Valor por Sección
             </h4>
-            <div style="height: 300px;">
+            <div style="position: relative; height: 280px;">
                 <canvas id="perdidasSeccionChart"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- <div class="alert alert-info">
-        Debug: Capital[{{ capital_total }}] - Quiebres[{{ quiebres_reales }}] - Ganancia[{{ ganancia_potencial }}]
-    </div> -->
-
+    <!-- Tarjetas métricas -->
     <div class="col-lg-5">
         <div class="row g-3">
             <div class="col-md-6">
@@ -49,7 +48,7 @@
                 </div>
             </div>
 
-            <div class="col-md-6">
+            <!-- <div class="col-md-6">
                 <div class="card p-4 metric-card border-dashed bg-light opacity-50" style="border: 2px dashed #ccc !important;">
                     <small class="text-muted">RESERVA COL-6 (Módulo 7)</small>
                 </div>
@@ -63,10 +62,11 @@
                 <div class="card p-4 metric-card border-dashed bg-light opacity-50" style="border: 2px dashed #ccc !important;">
                     <small class="text-muted">RESERVA COL-12 (Módulo 8)</small>
                 </div>
-            </div>
+            </div> -->
         </div>
     </div>
 
+    <!-- Tabla Riesgos Críticos -->
     <div class="col-lg-7">
         <div class="card p-4">
             <h5 class="card-title text-primary mb-4">Listado de Riesgos Críticos</h5>
@@ -95,19 +95,23 @@
         </div>
     </div>
 
+    <!-- Gráfico ROI -->
     <div class="col-lg-5">
-        <div class="card p-4 h-100">
+        <div class="card p-4">
             <h6 class="text-muted fw-bold small mb-3">ROI PROYECTADO (%)</h6>
-            <div style="height: 300px;"> <canvas id="roiChart"></canvas>
+            <div style="position: relative; height: 280px;">
+                <canvas id="roiChart"></canvas>
             </div>
         </div>
     </div>
+
 </div>
 
+<!-- Datos para charts.js — solo variables, sin lógica -->
 <script>
     window.chartLabels = {{ secciones_labels|safe }};
-    window.chartData = {{ total_perdido_data|safe }}; // Ahora sí tiene los montos por sección
-    window.roiLabels = {{ secciones_labels|safe }};
-    window.roiData = {{ roi_data|safe }};
+    window.chartData   = {{ total_perdido_data|safe }};
+    window.roiLabels   = {{ secciones_labels|safe }};
+    window.roiData     = {{ roi_data|safe }};
 </script>
 {% endblock %}
