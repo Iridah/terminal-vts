@@ -103,6 +103,90 @@ class AuditoriaVTS(models.Model):
         return {'color': '#38004F', 'simbolo': '🟣', 'texto': 'ILLIDARI'}
 
 # =================================================================
+# I.B VARIANTES VTS (TABLA HIJA DE AUDITORÍA)
+# =================================================================
+class VarianteVTS(models.Model):
+    # --- Relación con el padre ---
+    producto = models.ForeignKey(
+        AuditoriaVTS,
+        on_delete=models.CASCADE,
+        related_name='variantes'
+    )
+    # --- Identificación de variante ---
+    sku_variante = models.CharField(max_length=60, primary_key=True)
+    nombre_variante = models.CharField(max_length=100, verbose_name="Variante/Color/Fragancia")
+    imagen = models.ImageField(upload_to='productos/variantes/', blank=True, null=True)
+
+    # --- Inventario por variante ---
+    stock_sistema = models.IntegerField(default=0)
+    inventario_real = models.IntegerField(default=0)
+
+    # --- Financiero por variante ---
+    precio_costo = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    precio_venta = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    documento_tipo = models.CharField(
+        max_length=20,
+        choices=[('BOLETA', 'Boleta'), ('FACTURA', 'Factura')],
+        default='BOLETA'
+    )
+
+    class Meta:
+        verbose_name = "Variante VTS"
+        verbose_name_plural = "Variantes VTS"
+        ordering = ['producto', 'nombre_variante']
+
+    def __str__(self):
+        return f"{self.producto.sku} | {self.nombre_variante}"
+
+    def clean(self):
+        if self.inventario_real < 0:
+            raise ValidationError({'inventario_real': 'El stock no puede ser negativo.'})
+        if self.precio_costo < 0 or self.precio_venta < 0:
+            raise ValidationError('Los montos financieros deben ser positivos.')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        if self.imagen and hasattr(self.imagen, 'file'):
+            img = Image.open(self.imagen)
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            img.thumbnail((800, 800), Image.LANCZOS)
+            buffer = BytesIO()
+            img.save(buffer, format="WEBP", quality=80)
+            buffer.seek(0)
+            nuevo_nombre = os.path.splitext(self.imagen.name)[0] + ".webp"
+            self.imagen.save(nuevo_nombre, ContentFile(buffer.read()), save=False)
+        super().save(*args, **kwargs)
+
+    # --- KPIs heredados de AuditoriaVTS ---
+    @property
+    def margen_valor(self):
+        try:
+            v_neta = float(self.precio_venta) / 1.19
+            if v_neta > 0:
+                return (v_neta - float(self.precio_costo)) / v_neta
+            return 0
+        except:
+            return 0
+
+    def get_stock_status(self):
+        if self.inventario_real <= 0:
+            return {'color': '#714B23', 'label': 'QUIEBRE'}
+        pct = (self.inventario_real / 10) * 100
+        if pct <= 25: return {'color': '#ff4d4d', 'label': 'CRÍTICO'}
+        if pct <= 60: return {'color': '#ffc107', 'label': 'REVISAR'}
+        if pct <= 100: return {'color': '#71c016', 'label': 'ÓPTIMO'}
+        return {'color': '#4B49AC', 'label': 'SOBRESTOCK'}
+
+    def get_rentabilidad_status(self):
+        m = float(self.margen_valor or 0)
+        if m < 0.05: return {'color': '#714B23', 'simbolo': '🟤', 'texto': 'PÉRDIDA'}
+        if m < 0.14: return {'color': '#ff4d4d', 'simbolo': '🔴', 'texto': 'SOBREVIVENCIA'}
+        if m < 0.22: return {'color': '#ffc107', 'simbolo': '🟡', 'texto': 'NEUTRO'}
+        if m < 0.28: return {'color': '#71c016', 'simbolo': '🟢', 'texto': 'SALUDABLE'}
+        return {'color': '#38004F', 'simbolo': '🟣', 'texto': 'ILLIDARI'}
+
+# =================================================================
 # II. CLASES DE REGISTRO (HISTORIAL Y LOGS)
 # =================================================================
 
