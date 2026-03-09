@@ -40,6 +40,36 @@ class AuditoriaVTS(models.Model):
         verbose_name_plural = "Auditorías VTS"
         ordering = ['seccion', 'producto'] # Calcetines ordenados por sección al consultar
 
+    # Mapa de secciones a prefijos SKU
+    SECCION_PREFIJOS = {
+        'Abarrotes': 'ABA',
+        'Bebe': 'BEB',
+        'Boutique': 'BOU',
+        'Cuidado Personal': 'CPE',
+        'Electronica': 'ELE',
+        'Ferreteria': 'FER',
+        'Libreria': 'LIB',
+        'Limpieza': 'LIM',
+        'Menaje': 'MEN',
+    }
+
+    @classmethod
+    def generar_sku(cls, seccion):
+        prefijo = cls.SECCION_PREFIJOS.get(seccion)
+        if not prefijo:
+            # Sección nueva: tomar primeras 3 letras en mayúscula
+            prefijo = seccion.upper().replace(' ', '')[:3]
+        patron = f'V-{prefijo}-'
+        ultimos = cls.objects.filter(sku__startswith=patron).values_list('sku', flat=True)
+        numeros = []
+        for sku in ultimos:
+            try:
+                numeros.append(int(sku.replace(patron, '')))
+            except ValueError:
+                continue
+        siguiente = max(numeros) + 1 if numeros else 1
+        return f'{patron}{siguiente:03d}'
+
     # --- 1. MÉTODOS DE INTEGRIDAD (VALIDACIÓN Y GUARDADO) ---
     def clean(self):
         """Asegura que no entren datos imposibles a Mardum"""
@@ -51,6 +81,8 @@ class AuditoriaVTS(models.Model):
     def save(self, *args, **kwargs):
         # Validación forzada
         self.full_clean()
+        if not self.sku and self.seccion:
+            self.sku = self.generar_sku(self.seccion)
         
         # Procesamiento de Imagen: Conversión a WebP para optimizar carga
         if self.imagen and hasattr(self.imagen, 'file'):
@@ -237,6 +269,23 @@ class RegistroLogs(models.Model):
         # Cambiar self.fecha por self.fecha_exacta
         return f"{self.fecha_exacta.strftime('%d/%m %H:%M')} | {self.tipo_accion} | {self.sku}"
     
+# =================================================================
+# III. CONFIGURACIÓN DINÁMICA VTS
+# =================================================================
+class ConfigVTS(models.Model):
+    clave = models.CharField(max_length=50, unique=True, verbose_name="Parámetro")
+    valor = models.DecimalField(max_digits=5, decimal_places=4, verbose_name="Valor (decimal)")
+    descripcion = models.CharField(max_length=200, blank=True, verbose_name="Descripción")
+
+    class Meta:
+        verbose_name = "Configuración VTS"
+        verbose_name_plural = "Configuraciones VTS"
+        ordering = ['clave']
+
+    def __str__(self):
+        return f"{self.clave} = {self.valor}"
+
+
 # =================================================================
 # III. SEGURIDAD ADICIONAL
 # =================================================================

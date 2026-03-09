@@ -1,13 +1,19 @@
 #dashboard/admin.py
 from django.contrib import admin
-from .models import AuditoriaVTS, HistorialStock, LogRetirosDeducibles, RegistroLogs, PerfilVTS
+from .models import AuditoriaVTS, HistorialStock, LogRetirosDeducibles, RegistroLogs, PerfilVTS, VarianteVTS, ConfigVTS
 
 admin.site.site_header = "VTS - MARTILLO VIL"
 admin.site.site_title = "Panel de Forja"
 admin.site.index_title = "Administración de Inventario" 
 
+class VarianteInline(admin.TabularInline):
+    model = VarianteVTS
+    extra = 1
+    fields = ('sku_variante', 'nombre_variante', 'inventario_real', 'precio_costo', 'precio_venta', 'documento_tipo', 'imagen')
+    
 @admin.register(AuditoriaVTS)
 class AuditoriaAdmin(admin.ModelAdmin):
+    inlines = [VarianteInline]
     # 1. LIST DISPLAY: Conservador + Analítico
     # Mantenemos IDENTIDAD (Barras/Variante) y agregamos MÉTRICAS (Real/Diferencia/Pérdida)
     list_display = (
@@ -110,4 +116,8 @@ class PerfilVTSAdmin(admin.ModelAdmin):
     # Evitamos que se pueda editar el token a mano para no romper la llave
     readonly_fields = ('sargerite_token', 'ultima_ip')
 
+@admin.register(ConfigVTS)
+class ConfigVTSAdmin(admin.ModelAdmin):
+    list_display = ('clave', 'valor', 'descripcion')
+    ordering = ['clave']
 
