@@ -59,15 +59,27 @@ def registrar_aporte_hogar(request):
 @require_POST
 @login_required
 def registrar_movimiento_htmx(request, sku):
-    producto = get_object_or_404(AuditoriaVTS, sku=sku)
+    from .models import VarianteVTS
+    # Detectar si es variante o producto simple
+    variante = VarianteVTS.objects.filter(sku_variante=sku).first()
+    if variante:
+        obj = variante
+        nombre_producto = variante.producto.producto
+    else:
+        obj = get_object_or_404(AuditoriaVTS, sku=sku)
+        nombre_producto = obj.producto
+
     tipo = request.POST.get('tipo')
     cantidad = int(request.POST.get('cantidad', 1))
-    if tipo in ['venta', 'merma', 'aporte']: producto.inventario_real -= cantidad
-    elif tipo == 'ingreso': producto.inventario_real += cantidad
-    producto.save()
+    if tipo in ['venta', 'merma', 'aporte']:
+        obj.inventario_real -= cantidad
+    elif tipo == 'ingreso':
+        obj.inventario_real += cantidad
+    obj.save()
+
     RegistroLogs.objects.create(
         sku=sku,
-        producto=producto.producto,
+        producto=nombre_producto,
         tipo_accion=tipo.upper(),
         cantidad=cantidad,
         operador=request.user
