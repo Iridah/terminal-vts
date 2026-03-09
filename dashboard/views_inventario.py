@@ -43,11 +43,12 @@ def analisis_pro(request):
         return render(request, 'dashboard/analisis_pro.html', {'reporte': reporte})
     secciones = reporte.get('secciones', [])
     context = {
-        'reporte': reporte,
-        'secciones_labels': [str(s['seccion']) for s in secciones],
-        'roi_data': [round(float(s.get('roi_pro', 0)), 1) for s in secciones],
-        'total_perdido_data': [int(float(s.get('inversion_total', 0))) for s in secciones],
-    }
+    'reporte': reporte,
+    'secciones_labels': [str(s['seccion']) for s in secciones],
+    'roi_data': [round(float(s.get('roi_pro', 0)), 1) for s in secciones],
+    'total_perdido_data': [int(float(s.get('inversion_total', 0))) for s in secciones],
+    'sin_costo_lista': AuditoriaVTS.objects.filter(precio_costo=0, variantes__isnull=True).order_by('seccion'),
+}
     return render(request, 'dashboard/analisis_pro.html', context)
 
 @sargerite_shield(permiso_requerido='puede_ver_fotos')
