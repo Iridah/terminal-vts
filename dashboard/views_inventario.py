@@ -28,6 +28,7 @@ def dashboard_home(request):
         'ganancia_potencial': int(float(reporte.get('total_ganancia', 0))),
         'quiebres_reales': int(quiebres_reales),
         'alertas_reposicion': int(alertas_reposicion),
+        'sin_costo': int(auditorias.filter(precio_costo=0).count()),
         'productos_quiebre': auditorias.filter(inventario_real__lte=3).order_by('inventario_real')[:12],
         'secciones_labels': [str(s['seccion']) for s in secciones],
         'roi_labels': [str(s['seccion']) for s in secciones],

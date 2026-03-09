@@ -48,21 +48,6 @@
                 </div>
             </div>
 
-            <!-- <div class="col-md-6">
-                <div class="card p-4 metric-card border-dashed bg-light opacity-50" style="border: 2px dashed #ccc !important;">
-                    <small class="text-muted">RESERVA COL-6 (Módulo 7)</small>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card p-4 metric-card border-dashed bg-light opacity-50" style="border: 2px dashed #ccc !important;">
-                    <small class="text-muted">RESERVA COL-6 (Módulo 7)</small>
-                </div>
-            </div>
-            <div class="col-12">
-                <div class="card p-4 metric-card border-dashed bg-light opacity-50" style="border: 2px dashed #ccc !important;">
-                    <small class="text-muted">RESERVA COL-12 (Módulo 8)</small>
-                </div>
-            </div> -->
         </div>
     </div>
 
@@ -102,6 +87,26 @@
             <div style="position: relative; height: 280px;">
                 <canvas id="roiChart"></canvas>
             </div>
+        </div>
+    </div>
+
+    <!-- Bloque de alertas de costo  no ingresado-->
+        <div class="col-md-6">
+        <div class="card p-4 metric-card" style="border: 2px solid #fd7e14 !important;">
+            <small class="fw-bold text-uppercase" style="color: #fd7e14;">Sin Precio de Costo</small>
+            <h2 class="display-5 fw-bold mt-2 mb-0" style="color: #fd7e14;">{{ sin_costo }}</h2>
+            <small class="text-muted">productos sin costo registrado</small>
+            <i class="fa-solid fa-triangle-exclamation position-absolute" style="right:15px; bottom:15px; font-size:2rem; opacity:0.15; color:#fd7e14;"></i>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card p-4 metric-card border-dashed bg-light opacity-50" style="border: 2px dashed #ccc !important;">
+            <small class="text-muted">RESERVA COL-6 (Módulo 7)</small>
+        </div>
+    </div>
+    <div class="col-12">
+        <div class="card p-4 metric-card border-dashed bg-light opacity-50" style="border: 2px dashed #ccc !important;">
+            <small class="text-muted">RESERVA COL-12 (Módulo 8)</small>
         </div>
     </div>
 
