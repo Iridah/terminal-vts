@@ -19,8 +19,8 @@ def dashboard_home(request):
     if reporte.get('estado') == 'vacio':
         return render(request, 'dashboard/index.html', {'estado': 'vacio', 'quiebres_reales': 0})
     auditorias = AuditoriaVTS.objects.all()
-    quiebres_reales = int(auditorias.filter(inventario_real=0).count())
-    alertas_reposicion = int(auditorias.filter(inventario_real__gt=0, inventario_real__lte=3).count())
+    quiebres_reales = int(auditorias.filter(inventario_real=0, variantes__isnull=True).count())
+    alertas_reposicion = int(auditorias.filter(inventario_real__gt=0, inventario_real__lte=3, variantes__isnull=True).count())
     secciones = reporte.get('secciones', [])
     context = {
         'total_productos': int(auditorias.count()),
@@ -28,8 +28,8 @@ def dashboard_home(request):
         'ganancia_potencial': int(float(reporte.get('total_ganancia', 0))),
         'quiebres_reales': int(quiebres_reales),
         'alertas_reposicion': int(alertas_reposicion),
-        'sin_costo': int(auditorias.filter(precio_costo=0).count()),
-        'productos_quiebre': auditorias.filter(inventario_real__lte=3).order_by('inventario_real')[:12],
+        'sin_costo': int(auditorias.filter(precio_costo=0, variantes__isnull=True).count()),
+'productos_quiebre': auditorias.filter(inventario_real__lte=3, variantes__isnull=True).order_by('inventario_real')[:12],
         'secciones_labels': [str(s['seccion']) for s in secciones],
         'roi_labels': [str(s['seccion']) for s in secciones],
         'roi_data': [round(float(s['roi_pro']), 1) for s in secciones],
