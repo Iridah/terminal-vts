@@ -68,7 +68,10 @@ urlpatterns = [
     # =================================================================
     path('subir-foto/<str:sku>/', views.subir_foto_producto, name='subir_foto'),
 
-
+    # =================================================================
+    # PASILLO 7: API INTERNA
+    # =================================================================
+    path('api/config-costos/', views.api_config_costos, name='api_config_costos'),
 
 ]
 

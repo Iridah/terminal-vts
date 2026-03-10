@@ -110,6 +110,7 @@
             </div>
         </div>
 
+        <!-- Top 5 -->
         <div class="col-lg-4 mb-4">
             <div class="card border-0 shadow-sm p-4" style="border-radius: 15px; background: linear-gradient(145deg, #ffffff, #f0f0f0);">
                 <h5 class="font-weight-bold mb-4 text-dark">Top 5 Illidari (Máximo Potencial)</h5>
@@ -131,6 +132,30 @@
                 </div>
             </div>
         </div>
+
+        <!-- Bottom 5 -->
+        <div class="col-lg-4 mb-4">
+                    <div class="card border-0 shadow-sm p-4" style="border-radius: 15px; background: linear-gradient(145deg, #ffffff, #f0f0f0);">
+                        <h5 class="font-weight-bold mb-4 text-dark">Bottom 5 (Perdida de tiempo)</h5>
+                        <div class="list-group list-group-flush">
+                            {% for item in reporte.bottom_illidari %}
+                            <div class="list-group-item bg-transparent px-0 border-0 mb-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div style="max-width: 70%;">
+                                        <div class="font-weight-bold text-dark text-truncate">{{ item.producto }}</div>
+                                        <div class="small text-muted">{{ item.seccion }}</div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="font-weight-bold text-danger">+${{ item.ganancia_potencial|floatformat:0 }}</div>
+                                        <div class="small text-muted">Impacto</div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
 
         <div class="col-lg-4 mb-4">
             <div class="card border-0 shadow-sm p-4" style="border-radius: 15px; border-left: 4px solid #fd7e14 !important;">

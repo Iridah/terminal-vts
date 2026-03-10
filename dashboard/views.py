@@ -32,3 +32,4 @@ from dashboard.views_personal import (
     actualizar_indicadores_view,
     generar_liquidacion_view,
 )
+from .views_inventario import api_config_costos

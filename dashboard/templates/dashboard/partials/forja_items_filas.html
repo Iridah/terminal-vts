@@ -2,11 +2,11 @@
 <tr id="fila-{{ item.sku }}">
     <td class="ps-4">
         <div class="d-flex align-items-center gap-3 position-relative">
-            <div class="position-relative">
+            <div class="position-relative" style="width:48px; height:48px; flex-shrink:0;">
                 {% if item.imagen and item.imagen.url %}
-                    <img src="{{ item.imagen.url }}" class="img-thumbnail-vts" alt="{{ item.sku }}">
+                    <img src="{{ item.imagen.url }}" class="img-thumbnail-vts" style="width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid rgba(0,0,0,0.08); flex-shrink:0;" alt="{{ item.sku }}">
                 {% else %}
-                    <div class="img-thumbnail-vts d-flex align-items-center justify-content-center bg-light text-muted">
+                    <div class="img-thumbnail-vts d-flex align-items-center justify-content-center bg-light text-muted" style="width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid rgba(0,0,0,0.08); flex-shrink:0;">
                         <i class="fa-solid fa-box shadow-none opacity-25"></i>
                     </div>
                 {% endif %}
@@ -86,7 +86,7 @@
     style="display:none; background: rgba(75, 73, 172, 0.03);">
     <td class="ps-5">
         <div class="d-flex align-items-center gap-2">
-            <div class="img-thumbnail-vts d-flex align-items-center justify-content-center bg-light text-muted" style="width:32px; height:32px;">
+            <div class="img-thumbnail-vts d-flex align-items-center justify-content-center bg-light text-muted" style="width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid rgba(0,0,0,0.08); flex-shrink:0;">
                 {% if variante.imagen and variante.imagen.url %}
                     <img src="{{ variante.imagen.url }}" style="width:32px; height:32px; object-fit:cover; border-radius:4px;">
                 {% else %}
