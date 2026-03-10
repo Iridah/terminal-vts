@@ -73,6 +73,8 @@ class FelEngine:
             'venta_total_esperada': round(float(df['venta_total'].sum()), 2),
             'secciones': resumen.to_dict('records'),
             'top_illidari': df.nlargest(5, 'ganancia_potencial').to_dict('records'),
+            'bottom_illidari': df[df['inventario_real'] > 0].nsmallest(5, 'ganancia_potencial').to_dict('records'),
             'promedio_roi': round(resumen['roi_pro'].mean(), 1) if not resumen.empty else 0,
             'estado': 'ok'
         }
+
