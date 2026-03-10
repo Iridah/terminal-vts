@@ -98,3 +98,11 @@ function abrirModalFoto(sku, nombre) {
     modal.show();
 }
 
+function toggleVariantes(sku) {
+    const filas = document.querySelectorAll('.variante-row-' + sku);
+    const chevron = document.getElementById('chevron-' + sku);
+    filas.forEach(f => {
+        f.style.display = f.style.display === 'none' ? 'table-row' : 'none';
+    });
+    chevron.style.transform = chevron.style.transform === 'rotate(180deg)' ? '' : 'rotate(180deg)';
+}

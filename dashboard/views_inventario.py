@@ -12,6 +12,7 @@ from django.db import transaction
 from .models import AuditoriaVTS, HistorialStock, RegistroLogs
 from .engine import FelEngine
 from .sargerite import sargerite_shield
+from .vts_config import get_config
 
 @login_required
 def dashboard_home(request):
@@ -68,7 +69,7 @@ def inventario_view(request):
             (F('venta_neta') - F('precio_costo')) / Coalesce(F('venta_neta'), 1.0),
             output_field=FloatField()
         )
-    ).order_by('seccion')
+    ).prefetch_related('variantes').order_by('seccion')
     return render(request, 'dashboard/inventario.html', {'auditorias': auditorias})
 
 def detalle_producto(request, sku):
@@ -139,3 +140,7 @@ def buscar_productos(request):
     else:
         auditorias = AuditoriaVTS.objects.all().order_by('seccion')
     return render(request, 'dashboard/partials/forja_items_filas.html', {'auditorias': auditorias})
+
+def api_config_costos(request):
+    """Endpoint interno — devuelve porcentajes operativos para el JS del admin."""
+    return JsonResponse(get_config())
