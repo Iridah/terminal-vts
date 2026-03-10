@@ -47,9 +47,9 @@ class AuditoriaAdmin(admin.ModelAdmin):
     # 3. ESTILOS: La Unión hace la fuerza
     class Media:
         css = {
-            # Cargamos ambos: style.css (fuentes/vars) + admin_custom.css (tus ajustes específicos)
-            'all': ('dashboard/css/style.css', 'dashboard/css/admin_custom.css')
+        'all': ('dashboard/css/style.css', 'dashboard/css/admin_custom.css')
         }
+        js = ('dashboard/js/admin_calculadora.js',)
 
     def save_model(self, request, obj, form, change):
         if change and 'inventario_real' in form.changed_data:
@@ -88,6 +88,29 @@ class AuditoriaAdmin(admin.ModelAdmin):
             return f"${perdida:,.0f}" 
         return "-" # Devolvemos guión en vez de $0 para limpiar ruido visual
     perdida_monetaria.short_description = "Pérdida ($)"
+
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+        for obj in instances:
+            if isinstance(obj, VarianteVTS):
+                try:
+                    anterior = VarianteVTS.objects.get(pk=obj.pk)
+                    if anterior.inventario_real != obj.inventario_real:
+                        diferencia = obj.inventario_real - anterior.inventario_real
+                        tipo = 'INGRESO' if diferencia > 0 else 'MERMA'
+                        obj.save()
+                        RegistroLogs.objects.create(
+                            sku=obj.sku_variante,
+                            producto=obj.producto.producto,
+                            tipo_accion=f'{tipo} [SUDO]',
+                            cantidad=abs(diferencia),
+                            operador=request.user
+                        )
+                    else:
+                        obj.save()
+                except VarianteVTS.DoesNotExist:
+                    obj.save()
+        formset.save_m2m()
 
 # El resto se mantiene IDÉNTICO a tu original
 @admin.register(LogRetirosDeducibles)
