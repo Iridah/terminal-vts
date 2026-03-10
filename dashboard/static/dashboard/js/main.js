@@ -92,7 +92,7 @@ function abrirTrinidad(sku, nombre, stockActual) {
 function abrirModalFoto(sku, nombre) {
     document.getElementById('fotoNombreProd').textContent = nombre;
     const form = document.getElementById('formFoto');
-    form.setAttribute('action', `/inventario/${sku}/subir-foto/`);
+    form.setAttribute('action', `/subir-foto/${sku}/`);
 
     const modal = new bootstrap.Modal(document.getElementById('modalCargaImagen'));
     modal.show();
@@ -106,3 +106,4 @@ function toggleVariantes(sku) {
     });
     chevron.style.transform = chevron.style.transform === 'rotate(180deg)' ? '' : 'rotate(180deg)';
 }
+
