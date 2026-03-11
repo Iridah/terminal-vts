@@ -11,16 +11,9 @@
         <meta name="sargerite-token" content="{{ user.perfil.sargerite_token }}">
     {% endif %}
 
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Estilos propios -->
     <link rel="stylesheet" href="{% static 'dashboard/css/style.css' %}">
 
     {% block extra_css %}{% endblock %}
@@ -44,11 +37,31 @@
                 <i class="fa-solid fa-clock-rotate-left"></i> <span>Logs Sistema</span>
             </a>
 
+            {% if user.perfil.puede_ejecutar_ventas %}
+            <div class="nav-item">
+                <a href="#collapseVentas" data-bs-toggle="collapse" class="nav-link collapsed">
+                    <i class="fa-solid fa-cash-register"></i>
+                    <span>Ventas</span>
+                    <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                </a>
+            </div>
+            <div class="collapse" id="collapseVentas">
+                <div class="sub-nav-vertical">
+                    <a href="{% url 'ventas_importar' %}" class="sub-link-vts">
+                        <i class="fa-solid fa-file-arrow-up"></i> <span>Importar CSV</span>
+                    </a>
+                    <a href="{% url 'ventas_reporte' %}" class="sub-link-vts">
+                        <i class="fa-solid fa-chart-bar"></i> <span>Reportes</span>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
             {% if user.perfil.puede_ver_dikbig %}
             <div class="nav-item">
                 <a href="#collapsePersonal" data-bs-toggle="collapse" class="nav-link collapsed">
                     <i class="fa-solid fa-users-gear"></i>
-                    <span>Personal DIKBIG</span>
+                    <span>Personal</span>
                     <i class="fa-solid fa-chevron-down arrow-icon"></i>
                 </a>
             </div>
@@ -115,36 +128,11 @@
         {% endblock %}
     </main>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-    <!-- VTS Scripts -->
     <script src="{% static 'dashboard/js/main.js' %}"></script>
     <script src="{% static 'dashboard/js/charts.js' %}"></script>
-
-    <!-- Debug HTMX (remover en producción) -->
-    <script>
-    document.body.addEventListener('htmx:beforeRequest', function(evt) {
-        const path = evt.detail.pathInfo?.path
-                   || evt.detail.requestConfig?.path
-                   || evt.target.getAttribute('hx-post')
-                   || evt.target.getAttribute('hx-get')
-                   || 'Ruta Interna';
-        console.log("🚀 MARTILLO VIL DISPARANDO A:", path);
-    });
-    document.body.addEventListener('htmx:afterRequest', function(evt) {
-        console.log("✅ HTMX RECIBIÓ RESPUESTA");
-    });
-    document.body.addEventListener('htmx:responseError', function(evt) {
-        console.error("❌ ERROR DE RESPUESTA:", evt.detail.xhr.status);
-    });
-    </script>
 
     {% block extra_js %}{% endblock %}
 

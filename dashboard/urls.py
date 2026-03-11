@@ -73,6 +73,11 @@ urlpatterns = [
     # =================================================================
     path('api/config-costos/', views.api_config_costos, name='api_config_costos'),
 
+
+    # En dashboard/urls.py, agregar temporalmente:
+    path('ventas/importar/', lambda r: __import__('django.http', fromlist=['HttpResponse']).HttpResponse('Wixelandr — próximamente'), name='ventas_importar'),
+    path('ventas/reporte/', lambda r: __import__('django.http', fromlist=['HttpResponse']).HttpResponse('Odd — próximamente'), name='ventas_reporte'),
+    path('ventas/mapeo/', lambda r: None, name='ventas_mapeo'),
 ]
 
 # ESTO ES LO QUE FALTA: Solo para desarrollo
