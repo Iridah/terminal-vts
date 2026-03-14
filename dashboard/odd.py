@@ -2,10 +2,8 @@
 # Odd — Orquestador de Ventas VTS
 # Responsabilidades: mapeo SumUp↔VTS, descuento stock, reportes
  
-import csv
-import io
 from django.db import transaction
-from .models import AuditoriaVTS, VarianteVTS, RegistroLogs
+from .models import AuditoriaVTS, VarianteVTS, RegistroLogs, VentaRegistrada
  
 # =================================================================
 # I. UTILIDADES
@@ -44,9 +42,9 @@ def construir_mapeo_desde_inventario(filas: list) -> dict:
  
         if item_name:
             item_actual = {
-                'item_id':  item_id,
-                'nombre':   item_name,
-                'sku_vts':  sku_sumup if sku_sumup else None,
+                'item_id':   item_id,
+                'nombre':    item_name,
+                'sku_vts':   sku_sumup if sku_sumup else None,
                 'variantes': {}
             }
             mapeo[item_id] = item_actual
@@ -110,22 +108,24 @@ def buscar_sku_por_nombre(nombre_sumup: str) -> str | None:
 def procesar_ventas(filas_validas: list, operador) -> dict:
     """
     Procesa las filas ya validadas por Wixelandr:
+      - Verifica candado anti-doble descuento (VentaRegistrada)
       - Descuenta stock en VarianteVTS o AuditoriaVTS
-      - Registra cada movimiento en RegistroLogs
+      - Registra cada movimiento en RegistroLogs y VentaRegistrada
     Retorna dict con resumen del proceso.
     """
     resultado = {
         'procesadas':   0,
+        'duplicadas':   0,
         'sin_match':    [],
         'errores':      [],
         'total_bruto':  0.0,
     }
  
     for fila in filas_validas:
-        descripcion  = fila.get('Descripción',       '').strip()
+        descripcion  = fila.get('Descripción',      '').strip()
         cantidad     = int(float(fila.get('Cantidad', 1) or 1))
         precio_bruto = float(fila.get('Precio (Bruto)', 0) or 0)
-        id_tx        = fila.get('ID de transacción',  '').strip()
+        id_tx        = fila.get('ID de transacción', '').strip()
  
         sku = buscar_sku_por_nombre(descripcion)
  
@@ -135,6 +135,11 @@ def procesar_ventas(filas_validas: list, operador) -> dict:
                 'id_tx':       id_tx,
                 'cantidad':    cantidad,
             })
+            continue
+ 
+        # ── Candado anti-doble descuento ──────────────────────────
+        if VentaRegistrada.objects.filter(id_transaccion=id_tx, sku=sku).exists():
+            resultado['duplicadas'] += 1
             continue
  
         try:
@@ -150,12 +155,20 @@ def procesar_ventas(filas_validas: list, operador) -> dict:
                 producto.save()
                 producto_nombre = producto.producto
  
+            # Registrar en log
             RegistroLogs.objects.create(
-                operador=operador,
-                tipo_accion='VENTA_SUMUP',
-                sku=sku,
-                producto=f"TX:{id_tx} | {producto_nombre} | Cant:{cantidad} | Bruto:${precio_bruto:,.0f}",
-                cantidad=cantidad,
+                operador    = operador,
+                tipo_accion = 'VENTA_SUMUP',
+                sku         = sku,
+                producto    = f"TX:{id_tx} | {producto_nombre} | Cant:{cantidad} | Bruto:${precio_bruto:,.0f}",
+                cantidad    = cantidad,
+            )
+ 
+            # Registrar candado
+            VentaRegistrada.objects.create(
+                id_transaccion = id_tx,
+                sku            = sku,
+                operador       = operador,
             )
  
             resultado['procesadas']  += 1
@@ -189,6 +202,7 @@ def resumen_proceso(resultado: dict) -> str:
         f"✅ Procesadas:    {resultado['procesadas']}",
         f"💰 Total bruto:   ${resultado['total_bruto']:,.0f}",
         f"⚠️  Sin match:     {len(resultado['sin_match'])}",
+        f"🔁 Duplicadas:    {resultado['duplicadas']}",
         f"❌ Errores:       {len(resultado['errores'])}",
     ]
  
