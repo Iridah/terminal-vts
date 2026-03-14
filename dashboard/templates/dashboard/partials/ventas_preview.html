@@ -1,0 +1,85 @@
+{% comment %}
+dashboard/templates/dashboard/partials/ventas_preview.html
+Cargado por HTMX después de validar el CSV con Wixelandr.
+Las filas ya vienen con claves limpias desde views_ventas.py.
+{% endcomment %}
+
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">
+      <i class="fa-solid fa-table-list me-2 text-success"></i>
+      Preview — {{ total_filas }} fila{{ total_filas|pluralize:"s" }} válida{{ total_filas|pluralize:"s" }}
+    </span>
+    <span class="badge bg-success">Wixelandr ✓</span>
+  </div>
+
+  {% if advertencias %}
+  <div class="alert alert-warning rounded-0 mb-0 py-2 px-3 small border-0 border-bottom">
+    <i class="fa-solid fa-triangle-exclamation me-1"></i>
+    <strong>{{ advertencias|length }} advertencia{{ advertencias|length|pluralize }}</strong>
+    {% for a in advertencias %} · {{ a }}{% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card-body p-0">
+    <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+      <table class="table table-sm table-hover mb-0 small">
+        <thead class="table-dark sticky-top">
+          <tr>
+            <th>#</th>
+            <th>Fecha</th>
+            <th>Descripción</th>
+            <th>Cant.</th>
+            <th>Precio Bruto</th>
+            <th>TX ID</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fila in filas %}
+          <tr>
+            <td class="text-muted">{{ forloop.counter }}</td>
+            <td>{{ fila.fecha|default:"—" }}</td>
+            <td>{{ fila.descripcion|default:"—"|truncatechars:35 }}</td>
+            <td>{{ fila.cantidad|default:"1" }}</td>
+            <td>${{ fila.precio|default:"0" }}</td>
+            <td class="text-muted font-monospace small">{{ fila.id_tx|default:"—"|truncatechars:12 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if total_filas > 20 %}
+    <p class="text-muted small text-center py-2 mb-0 border-top">
+      Mostrando 20 de {{ total_filas }} filas.
+    </p>
+    {% endif %}
+  </div>
+
+  <div class="card-footer bg-transparent border-top">
+    <form hx-post="{% url 'ventas_importar' %}"
+          hx-target="#panel-resultado"
+          hx-swap="innerHTML"
+          hx-indicator="#spinner-procesar">
+      {% csrf_token %}
+      <input type="hidden" name="confirmar" value="1">
+      <input type="hidden" name="filas_json" id="filas-json-data">
+        <script>
+        document.getElementById('filas-json-data').value = JSON.stringify({{ filas_json|safe }});
+        </script>
+
+      <div class="d-flex align-items-center gap-2">
+        <div id="spinner-procesar" class="htmx-indicator">
+          <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        </div>
+        <button type="submit" class="btn btn-success">
+          <i class="fa-solid fa-bolt me-2"></i>Procesar {{ total_filas }} venta{{ total_filas|pluralize }}
+        </button>
+        <button type="button"
+                class="btn btn-outline-secondary"
+                onclick="document.getElementById('panel-resultado').innerHTML = ''">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -1,6 +1,10 @@
 # views.py — Router central v3.0.2
 # Toda la lógica vive en los módulos especializados.
 # Este archivo solo reexporta para mantener compatibilidad con urls.py
+from .wixelandr import validar_csv_sumup, validar_acceso
+from .odd import procesar_ventas, resumen_proceso, construir_mapeo_desde_inventario
+from .models import RegistroLogs
+
 
 from dashboard.views_inventario import (
     dashboard_home,
@@ -33,3 +37,4 @@ from dashboard.views_personal import (
     generar_liquidacion_view,
 )
 from .views_inventario import api_config_costos
+from dashboard.views_ventas import ventas_importar, ventas_reporte, ventas_mapeo

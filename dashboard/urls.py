@@ -73,13 +73,13 @@ urlpatterns = [
     # =================================================================
     path('api/config-costos/', views.api_config_costos, name='api_config_costos'),
 
-
-    # En dashboard/urls.py, agregar temporalmente:
-    path('ventas/importar/', lambda r: __import__('django.http', fromlist=['HttpResponse']).HttpResponse('Wixelandr — próximamente'), name='ventas_importar'),
-    path('ventas/reporte/', lambda r: __import__('django.http', fromlist=['HttpResponse']).HttpResponse('Odd — próximamente'), name='ventas_reporte'),
-    path('ventas/mapeo/', lambda r: None, name='ventas_mapeo'),
+    # =================================================================
+    # PASILLO 8: Ventas
+    # =================================================================
+    path('ventas/importar/', views.ventas_importar, name='ventas_importar'),
+    path('ventas/reporte/',  views.ventas_reporte,  name='ventas_reporte'),
+    path('ventas/mapeo/',    views.ventas_mapeo,    name='ventas_mapeo'),
 ]
-
 # ESTO ES LO QUE FALTA: Solo para desarrollo
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
