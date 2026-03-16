@@ -98,7 +98,8 @@ class AuditoriaVTS(models.Model):
             buffer = BytesIO()
             img.save(buffer, format="WEBP", quality=80)
             buffer.seek(0)
-            nuevo_nombre = os.path.splitext(self.imagen.name)[0] + ".webp"
+            nombre_base  = os.path.basename(os.path.splitext(self.imagen.name)[0])
+            nuevo_nombre = nombre_base + ".webp"
             self.imagen.save(nuevo_nombre, ContentFile(buffer.read()), save=False)
         super().save(*args, **kwargs)
  
@@ -201,7 +202,8 @@ class VarianteVTS(models.Model):
             buffer = BytesIO()
             img.save(buffer, format="WEBP", quality=80)
             buffer.seek(0)
-            nuevo_nombre = os.path.splitext(self.imagen.name)[0] + ".webp"
+            nombre_base  = os.path.basename(os.path.splitext(self.imagen.name)[0])
+            nuevo_nombre = nombre_base + ".webp"
             self.imagen.save(nuevo_nombre, ContentFile(buffer.read()), save=False)
         super().save(*args, **kwargs)
  

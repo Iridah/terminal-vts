@@ -148,6 +148,14 @@ class Command(BaseCommand):
                         stats['var_sin_sku'] += 1
                         continue
  
+                    # Validar convención SKU — cuarto chevron debe tener 4 caracteres
+                    partes = datos['sku'].split('-')
+                    if len(partes) >= 4 and len(partes[3]) != 4:
+                        stats['inconsistencias'].append(
+                            f"SKU variante inválido (chevron != 4 chars): {datos['sku']}"
+                        )
+                        continue
+
                     # Buscar padre por nombre en VTS
                     padre = AuditoriaVTS.objects.filter(
                         producto=datos['nombre']

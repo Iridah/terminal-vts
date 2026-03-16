@@ -24,8 +24,6 @@ class AuditoriaAdmin(admin.ModelAdmin):
         'seccion', 
         'inventario_real', # Agregado: Necesitas ver cuánto tienes
         'precio_venta',
-        'diferencia_unidades', # Activado (estaba definido abajo pero no aquí)
-        'perdida_monetaria'    # Activado (estaba definido abajo pero no aquí)
     )
 
     # 2. FILTROS Y BÚSQUEDA (Intactos)
@@ -68,26 +66,26 @@ class AuditoriaAdmin(admin.ModelAdmin):
             super().save_model(request, obj, form, change)
 
     # 🧮 CÁLCULO 1: Unidades
-    def diferencia_unidades(self, obj):
-        # Protección contra None types por si stock_sistema viene vacío
-        real = obj.inventario_real or 0
-        sistema = obj.stock_sistema or 0
-        diff = real - sistema
-        return diff
-    diferencia_unidades.short_description = "Dif. Stock"
+    # def diferencia_unidades(self, obj):
+    #     # Protección contra None types por si stock_sistema viene vacío
+    #     real = obj.inventario_real or 0
+    #     sistema = obj.stock_sistema or 0
+    #     diff = real - sistema
+    #     return diff
+    # diferencia_unidades.short_description = "Dif. Stock"
 
     # 💸 CÁLCULO 2: Dinero
-    def perdida_monetaria(self, obj):
-        real = obj.inventario_real or 0
-        sistema = obj.stock_sistema or 0
-        costo = obj.precio_costo or 0
+    # def perdida_monetaria(self, obj):
+    #     real = obj.inventario_real or 0
+    #     sistema = obj.stock_sistema or 0
+    #     costo = obj.precio_costo or 0
         
-        diff = real - sistema
-        if diff < 0:
-            perdida = abs(diff) * costo
-            return f"${perdida:,.0f}" 
-        return "-" # Devolvemos guión en vez de $0 para limpiar ruido visual
-    perdida_monetaria.short_description = "Pérdida ($)"
+    #     diff = real - sistema
+    #     if diff < 0:
+    #         perdida = abs(diff) * costo
+    #         return f"${perdida:,.0f}" 
+    #     return "-" # Devolvemos guión en vez de $0 para limpiar ruido visual
+    # perdida_monetaria.short_description = "Pérdida ($)"
 
     def save_formset(self, request, form, formset, change):
         instances = formset.save(commit=False)
