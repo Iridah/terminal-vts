@@ -11,7 +11,7 @@
   </div>
   <div class="card-body">
 
-    <!-- Métricas -->
+<!-- Métricas -->
     <div class="row g-3 mb-3">
       <div class="col-6 col-md-3">
         <div class="rounded-3 p-3 text-center" style="background:#d1fae520;">
@@ -23,6 +23,12 @@
         <div class="rounded-3 p-3 text-center" style="background:#fef3c720;">
           <div class="fw-bold fs-4 text-warning">{{ resultado.sin_match|length }}</div>
           <div class="small text-muted">Sin match</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="rounded-3 p-3 text-center" style="background:#dbeafe20;">
+          <div class="fw-bold fs-4 text-info">{{ resultado.duplicadas }}</div>
+          <div class="small text-muted">Duplicadas</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
