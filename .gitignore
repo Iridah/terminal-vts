@@ -1,3 +1,4 @@
+#gitignore
 .env
 *.db.sqlite3
 *.csv
@@ -16,6 +17,8 @@ data_v.csv
 *.txt
 !requirements.txt
 *.db
+*.pdf
+*.log
 *.db.bak
 *.md.bak
 *.moo

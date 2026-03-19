@@ -1,6 +1,7 @@
 # dashboard/odd.py
 # Odd — Orquestador de Ventas VTS
 # Responsabilidades: mapeo SumUp↔VTS, descuento stock, reportes
+# v4 — detección automática Aporte Hogar (descuento 40%)
  
 from django.db import transaction
 from .models import AuditoriaVTS, VarianteVTS, RegistroLogs, VentaRegistrada
@@ -14,6 +15,21 @@ def _norm(texto: str) -> str:
     return ' '.join(texto.strip().lower().split())
  
  
+def _pct_descuento(fila: dict) -> int:
+    """
+    Calcula el porcentaje de descuento de una fila del CSV SumUp.
+    Retorna entero redondeado (ej: 40) o 0 si no hay descuento.
+    """
+    try:
+        descuento   = float(fila.get('Descuento', 0) or 0)
+        precio_orig = float(fila.get('Precio sin descuento', 0) or 0)
+        if precio_orig > 0 and descuento > 0:
+            return round((descuento / precio_orig) * 100)
+    except (ValueError, TypeError):
+        pass
+    return 0
+ 
+ 
 # =================================================================
 # II. CONSTRUCCIÓN DE MAPEO SumUp ↔ VTS
 # =================================================================
@@ -23,9 +39,9 @@ def construir_mapeo_desde_inventario(filas: list) -> dict:
     Lee las filas del CSV de inventario SumUp y construye un dict:
     {
         item_id_sumup: {
-            'item_id':  str,
-            'nombre':   str,
-            'sku_vts':  str | None,
+            'item_id':   str,
+            'nombre':    str,
+            'sku_vts':   str | None,
             'variantes': {variant_id: nombre_variacion}
         }
     }
@@ -61,8 +77,6 @@ def construir_mapeo_desde_inventario(filas: list) -> dict:
 def buscar_sku_por_nombre(nombre_sumup: str) -> str | None:
     """
     Resuelve el SKU VTS a partir del nombre/descripción de SumUp.
- 
-    SumUp concatena 'Nombre producto Nombre variante' en la boleta.
     Estrategias en cascada:
       1. Exacto normalizado en variantes activas
       2. Exacto normalizado en productos simples activos
@@ -108,24 +122,31 @@ def buscar_sku_por_nombre(nombre_sumup: str) -> str | None:
 def procesar_ventas(filas_validas: list, operador) -> dict:
     """
     Procesa las filas ya validadas por Wixelandr:
+      - Detecta Aporte Hogar (descuento exacto del 40%)
       - Verifica candado anti-doble descuento (VentaRegistrada)
       - Descuenta stock en VarianteVTS o AuditoriaVTS
-      - Registra cada movimiento en RegistroLogs y VentaRegistrada
-    Retorna dict con resumen del proceso.
+      - Registra en RegistroLogs con tipo_accion correcto
     """
     resultado = {
-        'procesadas':   0,
-        'duplicadas':   0,
-        'sin_match':    [],
-        'errores':      [],
-        'total_bruto':  0.0,
+        'procesadas':     0,
+        'ap_hogar':       0,
+        'duplicadas':     0,
+        'sin_match':      [],
+        'errores':        [],
+        'total_bruto':    0.0,
+        'total_ap_hogar': 0.0,
     }
  
     for fila in filas_validas:
-        descripcion  = fila.get('Descripción',      '').strip()
+        descripcion  = fila.get('Descripción',       '').strip()
         cantidad     = int(float(fila.get('Cantidad', 1) or 1))
         precio_bruto = float(fila.get('Precio (Bruto)', 0) or 0)
-        id_tx        = fila.get('ID de transacción', '').strip()
+        id_tx        = fila.get('ID de transacción',  '').strip()
+ 
+        # ── Detectar Aporte Hogar ─────────────────────────────────
+        pct_dto     = _pct_descuento(fila)
+        es_ap_hogar = (pct_dto == 40)
+        tipo_accion = 'APORTE_HOGAR' if es_ap_hogar else 'VENTA_SUMUP'
  
         sku = buscar_sku_por_nombre(descripcion)
  
@@ -134,6 +155,7 @@ def procesar_ventas(filas_validas: list, operador) -> dict:
                 'descripcion': descripcion,
                 'id_tx':       id_tx,
                 'cantidad':    cantidad,
+                'ap_hogar':    es_ap_hogar,
             })
             continue
  
@@ -155,16 +177,20 @@ def procesar_ventas(filas_validas: list, operador) -> dict:
                 producto.save()
                 producto_nombre = producto.producto
  
-            # Registrar en log
+            # Registro en log
             RegistroLogs.objects.create(
                 operador    = operador,
-                tipo_accion = 'VENTA_SUMUP',
+                tipo_accion = tipo_accion,
                 sku         = sku,
-                producto    = f"TX:{id_tx} | {producto_nombre} | Cant:{cantidad} | Bruto:${precio_bruto:,.0f}",
+                producto    = (
+                    f"TX:{id_tx} | {producto_nombre} | "
+                    f"Cant:{cantidad} | Bruto:${precio_bruto:,.0f}"
+                    + (" | AP.H." if es_ap_hogar else "")
+                ),
                 cantidad    = cantidad,
             )
  
-            # Registrar candado
+            # Registro candado
             VentaRegistrada.objects.create(
                 id_transaccion = id_tx,
                 sku            = sku,
@@ -173,6 +199,10 @@ def procesar_ventas(filas_validas: list, operador) -> dict:
  
             resultado['procesadas']  += 1
             resultado['total_bruto'] += precio_bruto
+ 
+            if es_ap_hogar:
+                resultado['ap_hogar']       += 1
+                resultado['total_ap_hogar'] += precio_bruto
  
         except AuditoriaVTS.DoesNotExist:
             resultado['errores'].append({
@@ -199,18 +229,20 @@ def procesar_ventas(filas_validas: list, operador) -> dict:
 def resumen_proceso(resultado: dict) -> str:
     """Genera texto legible del resultado de procesar_ventas()."""
     lineas = [
-        f"✅ Procesadas:    {resultado['procesadas']}",
-        f"💰 Total bruto:   ${resultado['total_bruto']:,.0f}",
-        f"⚠️  Sin match:     {len(resultado['sin_match'])}",
-        f"🔁 Duplicadas:    {resultado['duplicadas']}",
-        f"❌ Errores:       {len(resultado['errores'])}",
+        f"✅ Procesadas:      {resultado['procesadas']}",
+        f"🏠 Aporte Hogar:    {resultado['ap_hogar']} (${resultado['total_ap_hogar']:,.0f})",
+        f"💰 Total bruto:     ${resultado['total_bruto']:,.0f}",
+        f"🔁 Duplicadas:      {resultado['duplicadas']}",
+        f"⚠️  Sin match:       {len(resultado['sin_match'])}",
+        f"❌ Errores:         {len(resultado['errores'])}",
     ]
  
     if resultado['sin_match']:
         lineas.append("\n— Sin match —")
         for item in resultado['sin_match']:
+            ap = " [AP.H.]" if item.get('ap_hogar') else ""
             lineas.append(
-                f"  · {item['descripcion']} (TX:{item['id_tx']}, x{item['cantidad']})"
+                f"  · {item['descripcion']}{ap} (TX:{item['id_tx']}, x{item['cantidad']})"
             )
  
     if resultado['errores']:
