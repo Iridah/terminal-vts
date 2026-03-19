@@ -87,9 +87,9 @@ class AuditoriaVTS(models.Model):
             raise ValidationError('Los montos financieros deben ser positivos.')
  
     def save(self, *args, **kwargs):
-        self.full_clean()
         if not self.sku and self.seccion:
             self.sku = self.generar_sku(self.seccion)
+        self.full_clean()
         if self.imagen and hasattr(self.imagen, 'file'):
             img = Image.open(self.imagen)
             if img.mode in ("RGBA", "P"):

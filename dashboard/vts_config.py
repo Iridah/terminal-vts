@@ -4,10 +4,11 @@ from .models import ConfigVTS
 def get_config():
     """Lee los parámetros operativos desde la BD. Retorna dict con decimales."""
     defaults = {
-        'sumup_pct':      0.03,
-        'internet_pct':   0.04,
-        'transporte_pct': 0.05,
-        'iva':            0.19,
+        'sumup_pct':      0.031,
+        'internet_pct':   0.041,
+        'transporte_pct': 0.051,
+        'iva':            0.19,   # IVA real para cálculos de semáforo
+        'iva_colchon':    0.20,   # Colchón interno para estimaciones de costo
     }
     for obj in ConfigVTS.objects.all():
         defaults[obj.clave] = float(obj.valor)
