@@ -27,9 +27,23 @@
             <a href="{% url 'home' %}" class="nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
                 <i class="fa-solid fa-house"></i> <span>Resumen General</span>
             </a>
-            <a href="{% url 'inventario' %}" class="nav-item {% if request.resolver_match.url_name == 'inventario' %}active{% endif %}">
-                <i class="fa-solid fa-boxes-stacked"></i> <span>La Forja</span>
-            </a>
+            <div class="nav-item">
+                <a href="#collapseForja" data-bs-toggle="collapse" class="nav-link {% if request.resolver_match.url_name == 'inventario' or request.resolver_match.url_name == 'inventario_pdf' %}active{% endif %}">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                    <span>La Forja</span>
+                    <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                </a>
+            </div>
+            <div class="collapse {% if request.resolver_match.url_name == 'inventario' or request.resolver_match.url_name == 'inventario_pdf' %}show{% endif %}" id="collapseForja">
+                <div class="sub-nav-vertical">
+                    <a href="{% url 'inventario' %}" class="sub-link-vts">
+                        <i class="fa-solid fa-boxes-stacked"></i> <span>Inventario</span>
+                    </a>
+                    <a href="{% url 'inventario_pdf' %}" class="sub-link-vts">
+                        <i class="fa-solid fa-file-pdf"></i> <span>Imprimir Inventario</span>
+                    </a>
+                </div>
+            </div>
             <a href="{% url 'analisis_pro' %}" class="nav-item {% if request.resolver_match.url_name == 'analisis_pro' %}active{% endif %}">
                 <i class="fa-solid fa-chart-line"></i> <span>Análisis Pro</span>
             </a>

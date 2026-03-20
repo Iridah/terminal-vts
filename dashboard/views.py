@@ -38,3 +38,4 @@ from dashboard.views_personal import (
 )
 from .views_inventario import api_config_costos
 from dashboard.views_ventas import ventas_importar, ventas_reporte, ventas_mapeo
+from dashboard.views_inventario import inventario_pdf_view

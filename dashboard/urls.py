@@ -20,6 +20,7 @@ urlpatterns = [
     # =================================================================
     path('inventario/', views.inventario_view, name='inventario'),
     path('producto/<str:sku>/', views.detalle_producto, name='detalle_producto'),
+    path('inventario/pdf/', views.inventario_pdf_view, name='inventario_pdf'),
 
     # =================================================================
     # PASILLO 3: ACCIONES OPERATIVAS (Lógica de Movimientos)

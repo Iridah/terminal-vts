@@ -176,48 +176,60 @@ def ejecutar_respaldo_completo() -> dict:
     """
     Ciclo completo:
       1. Backup BD
-      2. Subir a B2
-      3. Limpiar locales antiguos
-      4. Notificar via Lannu
-    Retorna dict con resultado.
+      2. Copiar a VacaCapsule (backup local)
+      3. Subir a B2 (backup nube)
+      4. Limpiar locales antiguos
+      5. Notificar via Lannu
     """
     resultado = {
-        'ok':            False,
-        'archivo':       None,
-        'subido_b2':     False,
-        'eliminados':    0,
-        'error':         None,
+        'ok':              False,
+        'archivo':         None,
+        'subido_b2':       False,
+        'subido_local':    False,
+        'eliminados':      0,
+        'error':           None,
     }
- 
+
+    VACA_CAPSULE = Path('/mnt/vacaCapsule/vts_backups')
     timestamp = datetime.datetime.now().strftime('%d/%m/%Y %H:%M')
- 
+
     try:
         # 1. Backup BD
         ruta = backup_base_datos()
         if not ruta:
             raise Exception("Falló la exportación de la BD")
- 
+
         resultado['archivo'] = str(ruta)
         tam_kb = ruta.stat().st_size // 1024
- 
-        # 2. Subir a B2
+
+        # 2. Copiar a VacaCapsule
+        try:
+            VACA_CAPSULE.mkdir(parents=True, exist_ok=True)
+            import shutil
+            shutil.copy2(str(ruta), str(VACA_CAPSULE / ruta.name))
+            resultado['subido_local'] = True
+        except Exception as e_local:
+            print(f"⚠ VacaCapsule no disponible: {e_local}")
+
+        # 3. Subir a B2
         resultado['subido_b2'] = subir_a_b2(ruta)
- 
-        # 3. Limpiar locales
+
+        # 4. Limpiar locales
         resultado['eliminados'] = limpiar_backups_locales(dias=7)
- 
+
         resultado['ok'] = True
- 
-        # 4. Notificar éxito
+
+        # 5. Notificar éxito
         lannu_notificar(
             f"✅ Respaldo completado\n"
             f"📦 Archivo: `{ruta.name}`\n"
             f"💾 Tamaño: {tam_kb} KB\n"
+            f"💿 VacaCapsule: {'✓' if resultado['subido_local'] else '✗ no disponible'}\n"
             f"☁️ B2: {'✓' if resultado['subido_b2'] else '✗'}\n"
             f"🗑 Locales eliminados: {resultado['eliminados']}\n"
             f"🕐 {timestamp}"
         )
- 
+
     except Exception as e:
         resultado['error'] = str(e)
         lannu_notificar(
@@ -226,5 +238,5 @@ def ejecutar_respaldo_completo() -> dict:
             f"🕐 {timestamp}",
             critico=True
         )
- 
+
     return resultado

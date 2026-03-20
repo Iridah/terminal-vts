@@ -14,6 +14,7 @@ from .engine import FelEngine
 from .sargerite import sargerite_shield
 from .vts_config import get_config
 
+
 @login_required
 def dashboard_home(request):
     reporte = FelEngine.generar_reporte_general()
@@ -144,3 +145,24 @@ def buscar_productos(request):
 def api_config_costos(request):
     """Endpoint interno — devuelve porcentajes operativos para el JS del admin."""
     return JsonResponse(get_config())
+
+@login_required
+def inventario_pdf_view(request):
+    import subprocess, os
+    from django.http import FileResponse
+    from datetime import datetime
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    ruta_pdf  = f"/home/asilvaq/Programacion/VTS/backups/inventario_{timestamp}.pdf"
+    
+    subprocess.run([
+        '/home/asilvaq/Programacion/VTS/venv/bin/python',
+        'manage.py', 'generar_inventario_pdf',
+        '--output', ruta_pdf
+    ], cwd='/home/asilvaq/Programacion/VTS')
+    
+    return FileResponse(
+        open(ruta_pdf, 'rb'),
+        as_attachment=True,
+        filename=f'inventario_{timestamp}.pdf'
+    )
