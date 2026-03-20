@@ -43,6 +43,14 @@
           <div class="small text-muted">Total bruto</div>
         </div>
       </div>
+      <!-- Aporte Hogar AQUÍ adentro -->
+      <div class="col-6 col-md-3">
+        <div class="rounded-3 p-3 text-center" style="background:#f0fdf420;">
+          <div class="fw-bold fs-4" style="color:#16a34a;">{{ resultado.ap_hogar }}</div>
+          <div class="small text-muted">Aporte Hogar</div>
+          <div class="small text-muted">${{ resultado.total_ap_hogar|floatformat:0 }}</div>
+        </div>
+      </div>
     </div>
 
     <!-- Sin match -->
