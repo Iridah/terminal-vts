@@ -59,3 +59,21 @@ class VentaRegistrada(models.Model):
  
     def __str__(self):
         return f"{self.fecha_proceso.strftime('%d/%m %H:%M')} | TX:{self.id_transaccion} | {self.sku}"
+    
+class HistorialVentas(models.Model):
+    fecha          = models.DateField()
+    id_transaccion = models.CharField(max_length=50)
+    descripcion    = models.CharField(max_length=200)
+    cantidad       = models.IntegerField(default=1)
+    precio_bruto   = models.DecimalField(max_digits=10, decimal_places=2)
+    descuento      = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    es_ap_hogar    = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = [('id_transaccion', 'descripcion')]
+        ordering        = ['-fecha']
+        verbose_name        = "Historial de Ventas"
+        verbose_name_plural = "Historial de Ventas"
+
+    def __str__(self):
+        return f"{self.fecha} | {self.id_transaccion} | {self.descripcion[:30]}"
