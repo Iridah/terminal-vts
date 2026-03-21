@@ -2,9 +2,9 @@
 # Odd — Orquestador de Ventas VTS
 # Responsabilidades: mapeo SumUp↔VTS, descuento stock, reportes
 # v4 — detección automática Aporte Hogar (descuento 40%)
- 
+from datetime import datetime
 from django.db import transaction
-from .models import AuditoriaVTS, VarianteVTS, RegistroLogs, VentaRegistrada
+from .models import AuditoriaVTS, VarianteVTS, RegistroLogs, VentaRegistrada, HistorialVentas
  
 # =================================================================
 # I. UTILIDADES
@@ -203,6 +203,27 @@ def procesar_ventas(filas_validas: list, operador) -> dict:
             if es_ap_hogar:
                 resultado['ap_hogar']       += 1
                 resultado['total_ap_hogar'] += precio_bruto
+
+            # Registro en HistorialVentas
+            try:
+                fecha_venta = datetime.strptime(
+                    fila.get('Fecha', '').split(',')[0].strip(), '%d-%m-%Y'
+                ).date()
+            except:
+                from django.utils import timezone
+                fecha_venta = timezone.now().date()
+
+            HistorialVentas.objects.get_or_create(
+                id_transaccion = id_tx,
+                descripcion    = descripcion,
+                defaults={
+                    'fecha':        fecha_venta,
+                    'cantidad':     cantidad,
+                    'precio_bruto': precio_bruto,
+                    'descuento':    float(fila.get('Descuento', 0) or 0),
+                    'es_ap_hogar':  es_ap_hogar,
+                }
+            )
  
         except AuditoriaVTS.DoesNotExist:
             resultado['errores'].append({
@@ -219,6 +240,7 @@ def procesar_ventas(filas_validas: list, operador) -> dict:
                 'motivo':      str(e),
             })
  
+
     return resultado
  
  
