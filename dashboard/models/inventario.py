@@ -131,12 +131,13 @@ class AuditoriaVTS(models.Model):
         return {'color': '#4B49AC', 'label': 'SOBRESTOCK'}
  
     def get_rentabilidad_status(self):
-        m = float(getattr(self, 'margen_db', self.margen_valor) or 0)
-        if m < 0.05: return {'color': '#212121', 'simbolo': '⚫', 'texto': 'PÉRDIDA'}
-        if m < 0.14: return {'color': '#ff4d4d', 'simbolo': '🔴', 'texto': 'SOBREVIVENCIA'}
-        if m < 0.22: return {'color': '#ffc107', 'simbolo': '🟡', 'texto': 'NEUTRO'}
-        if m < 0.28: return {'color': '#71c016', 'simbolo': '🟢', 'texto': 'SALUDABLE'}
-        return {'color': '#38004F', 'simbolo': '🟣', 'texto': 'ILLIDARI'}
+        m = float(self.margen_valor or 0)
+        if m < 0.00: return {'color': '#212121', 'simbolo': '⚫', 'texto': 'PÉRDIDA'}
+        if m < 0.10: return {'color': '#E53935', 'simbolo': '🔴', 'texto': 'SOBREVIVENCIA'}
+        if m < 0.18: return {'color': '#F9A825', 'simbolo': '🟡', 'texto': 'NEUTRO'}
+        if m < 0.26: return {'color': '#43A047', 'simbolo': '🟢', 'texto': 'SALUDABLE'}
+        if m < 0.36: return {'color': '#FB8C00', 'simbolo': '🔥', 'texto': 'ÓPTIMO'}
+        return {'color': '#6A1B9A', 'simbolo': '🟣', 'texto': 'ILLIDARI'}
  
     def __str__(self):
         estado_tag = ' ❄️' if self.estado == 'criocongelado' else ''

@@ -9,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, F, ExpressionWrapper, FloatField, Q
 from django.db.models.functions import Coalesce
 from django.db import transaction
-from .models import AuditoriaVTS, HistorialStock, RegistroLogs
+from .models import AuditoriaVTS, VarianteVTS, HistorialStock, RegistroLogs
 from .engine import FelEngine
 from .sargerite import sargerite_shield
 from .vts_config import get_config
@@ -20,7 +20,7 @@ def dashboard_home(request):
     reporte = FelEngine.generar_reporte_general()
     if reporte.get('estado') == 'vacio':
         return render(request, 'dashboard/index.html', {'estado': 'vacio', 'quiebres_reales': 0})
-    auditorias = AuditoriaVTS.objects.all()
+    auditorias = AuditoriaVTS.objects.filter(estado='activo')
     quiebres_reales = int(auditorias.filter(inventario_real=0, variantes__isnull=True).count())
     alertas_reposicion = int(auditorias.filter(inventario_real__gt=0, inventario_real__lte=3, variantes__isnull=True).count())
     secciones = reporte.get('secciones', [])
@@ -31,7 +31,7 @@ def dashboard_home(request):
         'quiebres_reales': int(quiebres_reales),
         'alertas_reposicion': int(alertas_reposicion),
         'sin_costo': int(auditorias.filter(precio_costo=0, variantes__isnull=True).count()),
-'productos_quiebre': auditorias.filter(inventario_real__lte=3, variantes__isnull=True).order_by('inventario_real')[:12],
+        'productos_quiebre': auditorias.filter(inventario_real__lte=3, variantes__isnull=True).order_by('inventario_real')[:15],
         'secciones_labels': [str(s['seccion']) for s in secciones],
         'roi_labels': [str(s['seccion']) for s in secciones],
         'roi_data': [round(float(s['roi_pro']), 1) for s in secciones],
@@ -39,18 +39,73 @@ def dashboard_home(request):
     }
     return render(request, 'dashboard/index.html', context)
 
+@login_required
 def analisis_pro(request):
     reporte = FelEngine.generar_reporte_general()
     if reporte.get('estado') == 'vacio':
         return render(request, 'dashboard/analisis_pro.html', {'reporte': reporte})
+    
     secciones = reporte.get('secciones', [])
+    cfg    = get_config()
+    factor = sum(v for k, v in cfg.items() if k.endswith('_pct'))
+
+    perdida      = []
+    sobrevivencia = []
+
+    # Productos simples activos
+    for p in AuditoriaVTS.objects.filter(estado='activo', variantes__isnull=True):
+        costo = float(p.precio_costo)
+        venta = float(p.precio_venta)
+        if venta <= 0:
+            continue
+        costo_real = costo * (1 + factor)
+        margen     = (venta - costo_real) / venta
+        entrada = {
+            'sku':     p.sku,
+            'producto': p.producto,
+            'seccion':  p.seccion,
+            'margen':   round(margen * 100, 1),
+            'psp':      int(venta),
+            'psp_neutro': int(costo_real / (1 - 0.18)) + 1,
+        }
+        if margen < 0:
+            perdida.append(entrada)
+        elif margen < 0.10:
+            sobrevivencia.append(entrada)
+
+    # Variantes activas
+    for v in VarianteVTS.objects.filter(estado='activo', producto__estado='activo').select_related('producto'):
+        costo = float(v.precio_costo)
+        venta = float(v.precio_venta)
+        if venta <= 0:
+            continue
+        costo_real = costo * (1 + factor)
+        margen     = (venta - costo_real) / venta
+        entrada = {
+            'sku':      v.sku_variante,
+            'producto': f"{v.producto.producto} / {v.nombre_variante}",
+            'seccion':  v.producto.seccion,
+            'margen':   round(margen * 100, 1),
+            'psp':      int(venta),
+            'psp_neutro': int(costo_real / (1 - 0.18)) + 1,
+        }
+        if margen < 0:
+            perdida.append(entrada)
+        elif margen < 0.10:
+            sobrevivencia.append(entrada)
+
+    perdida.sort(key=lambda x: x['margen'])
+    sobrevivencia.sort(key=lambda x: x['margen'])
+
     context = {
-    'reporte': reporte,
-    'secciones_labels': [str(s['seccion']) for s in secciones],
-    'roi_data': [round(float(s.get('roi_pro', 0)), 1) for s in secciones],
-    'total_perdido_data': [int(float(s.get('inversion_total', 0))) for s in secciones],
-    'sin_costo_lista': AuditoriaVTS.objects.filter(precio_costo=0, variantes__isnull=True).order_by('seccion'),
-}
+        'reporte':         reporte,
+        'secciones_labels': [str(s['seccion']) for s in secciones],
+        'roi_data':         [round(float(s.get('roi_pro', 0)), 1) for s in secciones],
+        'total_perdido_data': [int(float(s.get('inversion_total', 0))) for s in secciones],
+        'sin_costo_lista':  AuditoriaVTS.objects.filter(precio_costo=0, variantes__isnull=True, estado='activo').order_by('seccion'),
+        'perdida_lista':    perdida,
+        'sobrevivencia_lista': sobrevivencia,
+    }
     return render(request, 'dashboard/analisis_pro.html', context)
 
 @sargerite_shield(permiso_requerido='puede_ver_fotos')
