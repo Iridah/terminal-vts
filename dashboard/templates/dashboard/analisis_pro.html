@@ -74,7 +74,31 @@
         </div>
     </div>
 
+        <!-- Aca tendria que ir el grafico de items segun semaforo -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
+                    <h5 class="font-weight-bold mb-4 text-dark">Articulos segun nivel de ganancia (%)</h5>
+                    <div style="height: 300px;">
+                        <canvas id="semaforoChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
 
+                <!-- Aca tendria que ir el grafico de los 13 meses -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
+                    <h5 class="font-weight-bold mb-4 text-dark">Historico de ventas mensuales</h5>
+                    <div style="height: 300px;">
+                        <canvas id="ventasHistorialChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!--Mapa de rendimiento por seccion-->    
     <div class="row">
         <div class="col-lg-8 mb-4">
             <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
@@ -106,6 +130,36 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+                <!--Semaforo de productos sin costo-->
+        <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm p-4" style="border-radius: 15px; border-left: 4px solid #fd7e14 !important;">
+                <h5 class="font-weight-bold mb-4" style="color: #fd7e14;">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i>Sin Precio de Costo
+                </h5>
+                <div class="list-group list-group-flush">
+                    {% for item in sin_costo_lista %}
+                    <div class="list-group-item bg-transparent px-0 border-0 mb-1">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div style="max-width: 70%;">
+                                <div class="font-weight-bold text-dark text-truncate small">{{ item.producto }}</div>
+                                <div class="small text-muted">{{ item.seccion }}</div>
+                            </div>
+                            <div>
+                                <a href="/admin/dashboard/auditoriavts/{{ item.sku }}/change/" 
+                                class="btn btn-sm" 
+                                style="background-color: #fd7e14; color: white; font-size: 0.7rem;">
+                                    Editar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-success small">✅ Todos los productos tienen costo registrado.</div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -210,35 +264,6 @@
             </div>
         </div>
 
-        <div class="col-lg-4 mb-4">
-            <div class="card border-0 shadow-sm p-4" style="border-radius: 15px; border-left: 4px solid #fd7e14 !important;">
-                <h5 class="font-weight-bold mb-4" style="color: #fd7e14;">
-                    <i class="fa-solid fa-triangle-exclamation me-2"></i>Sin Precio de Costo
-                </h5>
-                <div class="list-group list-group-flush">
-                    {% for item in sin_costo_lista %}
-                    <div class="list-group-item bg-transparent px-0 border-0 mb-1">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div style="max-width: 70%;">
-                                <div class="font-weight-bold text-dark text-truncate small">{{ item.producto }}</div>
-                                <div class="small text-muted">{{ item.seccion }}</div>
-                            </div>
-                            <div>
-                                <a href="/admin/dashboard/auditoriavts/{{ item.sku }}/change/" 
-                                class="btn btn-sm" 
-                                style="background-color: #fd7e14; color: white; font-size: 0.7rem;">
-                                    Editar
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="text-success small">✅ Todos los productos tienen costo registrado.</div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
     </div>
     {% else %}
     <div class="alert alert-warning shadow-sm border-0" style="border-radius: 10px;">
@@ -309,6 +334,84 @@
                 }
             }
         });
+        // Gráfico semáforo
+        const semaforoLabels = {{ semaforo_labels|safe|default:"[]" }};
+        const semaforoData   = {{ semaforo_data|safe|default:"[]" }};
+        const semaforoColors = ['#212121','#E53935','#F9A825','#43A047','#FB8C00','#6A1B9A'];
+
+        const canvasSemaforo = document.getElementById('semaforoChart');
+        if (canvasSemaforo && semaforoLabels.length > 0) {
+            new Chart(canvasSemaforo.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: semaforoLabels,
+                    datasets: [{
+                        label: 'Productos por nivel',
+                        data: semaforoData,
+                        borderColor: '#4b49ac',
+                        backgroundColor: 'rgba(75,73,172,0.15)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 8,
+                        pointBackgroundColor: semaforoColors,
+                        pointBorderColor: semaforoColors,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#6c757d', stepSize: 1 }
+                        },
+                        x: { ticks: { color: '#6c757d' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // Gráfico 13 meses
+        const ventasLabels = {{ ventas_hist_labels|safe|default:"[]" }};
+        const ventasData   = {{ ventas_hist_data|safe|default:"[]" }};
+
+        const canvasVentas = document.getElementById('ventasHistorialChart');
+        if (canvasVentas && ventasLabels.length > 0) {
+            new Chart(canvasVentas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: ventasLabels,
+                    datasets: [{
+                        label: 'Ventas brutas ($)',
+                        data: ventasData,
+                        borderColor: '#43A047',
+                        backgroundColor: 'rgba(67,160,71,0.15)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 6,
+                        pointBackgroundColor: '#43A047',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#6c757d',
+                                callback: function(v) { return '$' + v.toLocaleString('es-CL'); }
+                            }
+                        },
+                        x: { ticks: { color: '#6c757d' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
     });
 </script>
 {% endblock %}

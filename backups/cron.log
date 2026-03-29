@@ -124,3 +124,7 @@ IndentationError: expected an indented block after function definition on line 1
 
 ✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260327_220000.json (266 KB)
 ✓ Subido a B2: backups/vts_db_backup_20260327_220000.json
+22 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260328_220000.json (270 KB)
+✓ Subido a B2: backups/vts_db_backup_20260328_220000.json
