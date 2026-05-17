@@ -1,0 +1,138 @@
+21 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260318_220000.json (145 KB)
+✓ Subido a B2: backups/vts_db_backup_20260318_220000.json
+21 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260319_140000.json (146 KB)
+✓ Subido a B2: backups/vts_db_backup_20260319_140000.json
+21 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260319_220001.json (146 KB)
+✓ Subido a B2: backups/vts_db_backup_20260319_220001.json
+21 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260320_140000.json (146 KB)
+✓ Subido a B2: backups/vts_db_backup_20260320_140000.json
+22 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260321_220000.json (201 KB)
+✓ Subido a B2: backups/vts_db_backup_20260321_220000.json
+22 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260322_220000.json (205 KB)
+✓ Subido a B2: backups/vts_db_backup_20260322_220000.json
+22 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260323_140000.json (213 KB)
+✓ Subido a B2: backups/vts_db_backup_20260323_140000.json
+22 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260323_220001.json (233 KB)
+✓ Subido a B2: backups/vts_db_backup_20260323_220001.json
+22 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260324_140001.json (264 KB)
+✓ Subido a B2: backups/vts_db_backup_20260324_140001.json
+22 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260324_220000.json (264 KB)
+✓ Subido a B2: backups/vts_db_backup_20260324_220000.json
+Traceback (most recent call last):
+  File "/home/asilvaq/Programacion/VTS/manage.py", line 25, in <module>
+    main()
+    ~~~~^^
+  File "/home/asilvaq/Programacion/VTS/manage.py", line 21, in main
+    execute_from_command_line(sys.argv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/home/asilvaq/Programacion/VTS/venv/lib64/python3.13/site-packages/django/core/management/__init__.py", line 443, in execute_from_command_line
+    utility.execute()
+    ~~~~~~~~~~~~~~~^^
+  File "/home/asilvaq/Programacion/VTS/venv/lib64/python3.13/site-packages/django/core/management/__init__.py", line 417, in execute
+    django.setup()
+    ~~~~~~~~~~~~^^
+  File "/home/asilvaq/Programacion/VTS/venv/lib64/python3.13/site-packages/django/__init__.py", line 24, in setup
+    apps.populate(settings.INSTALLED_APPS)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/asilvaq/Programacion/VTS/venv/lib64/python3.13/site-packages/django/apps/registry.py", line 116, in populate
+    app_config.import_models()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/asilvaq/Programacion/VTS/venv/lib64/python3.13/site-packages/django/apps/config.py", line 269, in import_models
+    self.models_module = import_module(models_module_name)
+                         ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.13/importlib/__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1023, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/asilvaq/Programacion/VTS/dashboard/models/__init__.py", line 1, in <module>
+    from .inventario import AuditoriaVTS, VarianteVTS, HistorialStock
+  File "/home/asilvaq/Programacion/VTS/dashboard/models/inventario.py", line 134
+    m = float(getattr(self, 'margen_db', self.margen_valor) or 0)
+    ^
+IndentationError: expected an indented block after function definition on line 133
+Traceback (most recent call last):
+  File "/home/asilvaq/Programacion/VTS/manage.py", line 25, in <module>
+    main()
+    ~~~~^^
+  File "/home/asilvaq/Programacion/VTS/manage.py", line 21, in main
+    execute_from_command_line(sys.argv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/home/asilvaq/Programacion/VTS/venv/lib64/python3.13/site-packages/django/core/management/__init__.py", line 443, in execute_from_command_line
+    utility.execute()
+    ~~~~~~~~~~~~~~~^^
+  File "/home/asilvaq/Programacion/VTS/venv/lib64/python3.13/site-packages/django/core/management/__init__.py", line 417, in execute
+    django.setup()
+    ~~~~~~~~~~~~^^
+  File "/home/asilvaq/Programacion/VTS/venv/lib64/python3.13/site-packages/django/__init__.py", line 24, in setup
+    apps.populate(settings.INSTALLED_APPS)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/asilvaq/Programacion/VTS/venv/lib64/python3.13/site-packages/django/apps/registry.py", line 116, in populate
+    app_config.import_models()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/asilvaq/Programacion/VTS/venv/lib64/python3.13/site-packages/django/apps/config.py", line 269, in import_models
+    self.models_module = import_module(models_module_name)
+                         ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.13/importlib/__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1023, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/asilvaq/Programacion/VTS/dashboard/models/__init__.py", line 1, in <module>
+    from .inventario import AuditoriaVTS, VarianteVTS, HistorialStock
+  File "/home/asilvaq/Programacion/VTS/dashboard/models/inventario.py", line 134
+    m = float(getattr(self, 'margen_db', self.margen_valor) or 0)
+    ^
+IndentationError: expected an indented block after function definition on line 133
+22 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260326_220001.json (265 KB)
+✓ Subido a B2: backups/vts_db_backup_20260326_220001.json
+22 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260327_140000.json (266 KB)
+✓ Subido a B2: backups/vts_db_backup_20260327_140000.json
+22 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260327_220000.json (266 KB)
+✓ Subido a B2: backups/vts_db_backup_20260327_220000.json
+22 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260328_220000.json (270 KB)
+✓ Subido a B2: backups/vts_db_backup_20260328_220000.json
+22 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260329_225033.json (293 KB)
+✓ Subido a B2: backups/vts_db_backup_20260329_225033.json
+22 objects imported automatically (use -v 2 for details).
+
+✓ BD exportada: /home/asilvaq/Programacion/VTS/backups/vts_db_backup_20260330_220001.json (293 KB)
+✓ Subido a B2: backups/vts_db_backup_20260330_220001.json

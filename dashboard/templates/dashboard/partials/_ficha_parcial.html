@@ -1,0 +1,75 @@
+<!-- dashboard/templates/dashboard/partials/_ficha_parcial.html -->
+<div class="card shadow-lg border-0 animate__animated animate__zoomIn">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">📋 Ficha: {{ paciente.nombres }} {{ paciente.apellido_paterno }} {{ paciente.apellido_materno }}</h5>
+        <span class="badge bg-primary">{{ paciente.rut }}</span>
+    </div>
+    <div class="card-body">
+        {% if user.is_authenticated %}
+            <form hx-post="{% url 'guardar_ficha' paciente.rut %}" hx-target="#mensaje-guardado">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Cargo</label>
+                        <input type="text" name="cargo" class="form-control" value="{{ paciente.cargo }}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Sueldo Base</label>
+                        <input type="text" name="sueldo" id="sueldo" class="form-control" 
+                            value="$ {{ paciente.sueldo_base|floatformat:0 }}">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Inicio Contrato</label>
+                        <input type="date" name="inicio" class="form-control" value="{{ paciente.fecha_inicio|date:'Y-m-d' }}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Término Contrato</label>
+                        <input type="date" name="termino" class="form-control" value="{{ paciente.fecha_termino|date:'Y-m-d' }}">
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">AFP</label>
+                        <input type="text" name="afp" class="form-control" value="{{ paciente.afp }}">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Salud</label>
+                        <input type="text" name="salud" class="form-control" value="{{ paciente.salud }}">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Adicional</label>
+                        <input type="text" name="adicional" class="form-control" value="{{ paciente.adicional }}">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Dirección</label>
+                        <input type="text" name="direccion" class="form-control" value="{{ paciente.direccion }}">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Comuna</label>
+                        <input type="text" name="comuna" class="form-control" value="{{ paciente.comuna }}">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Teléfono</label>
+                        <input type="text" name="telefono" class="form-control" value="{{ paciente.telefono }}">
+                    </div>
+
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label fw-bold">Correo Electrónico</label>
+                        <input type="text" name="correo" class="form-control" 
+                            value="{{ paciente.correo_electronico }}">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-success w-100 mt-2">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar Cambios
+                </button>
+            </form>
+        {% else %}
+            <div class="alert alert-warning">Debes iniciar sesión para editar esta ficha.</div>
+        {% endif %}
+        
+        <div id="mensaje-guardado" class="mt-3"></div>
+    </div>
+</div>

@@ -1,0 +1,132 @@
+{% for item in auditorias %}
+<tr id="fila-{{ item.sku }}">
+    <td class="ps-4">
+        <div class="d-flex align-items-center gap-3 position-relative">
+            <div class="position-relative" style="width:48px; height:48px; flex-shrink:0;">
+                {% if item.imagen and item.imagen.url %}
+                    <img src="{{ item.imagen.url }}" class="img-thumbnail-vts" style="width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid rgba(0,0,0,0.08); flex-shrink:0;" alt="{{ item.sku }}">
+                {% else %}
+                    <div class="img-thumbnail-vts d-flex align-items-center justify-content-center bg-light text-muted" style="width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid rgba(0,0,0,0.08); flex-shrink:0;">
+                        <i class="fa-solid fa-box shadow-none opacity-25"></i>
+                    </div>
+                {% endif %}
+                <button onclick="abrirModalFoto('{{ item.sku }}', '{{ item.producto }}')"
+                        class="btn btn-dark btn-sm position-absolute top-100 start-100 translate-middle rounded-circle p-1 shadow"
+                        style="width: 24px; height: 24px; font-size: 0.6rem; z-index: 10;">
+                    <i class="fas fa-camera"></i>
+                </button>
+            </div>
+            <div>
+                <span class="sku-badge">{{ item.sku }}</span>
+                {% if item.variantes.all %}
+                <button class="btn btn-sm border-0 p-0 ms-1" 
+                        onclick="toggleVariantes('{{ item.sku }}')"
+                        title="Ver variantes">
+                    <i class="fa-solid fa-chevron-down" id="chevron-{{ item.sku }}" 
+                       style="font-size:0.7rem; color: var(--skydash-blue);"></i>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </td>
+
+    <td>
+        <div class="fw-bold text-dark">{{ item.producto }}</div>
+        <small class="text-muted text-uppercase" style="font-size: 0.7rem;">{{ item.seccion }}</small>
+        {% if item.variantes.all %}
+        <small class="text-primary" style="font-size: 0.65rem;">
+            {{ item.variantes.count }} variante{{ item.variantes.count|pluralize }}
+        </small>
+        {% endif %}
+    </td>
+
+    <td class="text-center" style="width: 120px;">
+        {% if item.variantes.all %}
+            <span class="text-muted" style="font-size: 0.75rem;">ver variantes</span>
+        {% else %}
+        {% with status=item.get_stock_status %}
+        <div class="progress mx-auto"
+            style="height: 12px; width: 85px; background-color: rgba(0,0,0,0.05); border-radius: 20px;"
+            title="{{ status.label }}">
+            <div class="progress-bar rounded-pill shadow-none"
+                style="width: 100%; background-color: {{ status.color }}; transition: width 0.4s ease;">
+            </div>
+        </div>
+        {% endwith %}
+        {% endif %}
+    </td>
+
+    <td class="text-center">
+        {% if not item.variantes.all %}
+        <span class="fw-bold" style="color: {{ item.get_rentabilidad_status.color }}; font-size: 0.8rem;">
+            {{ item.get_rentabilidad_status.simbolo }} {{ item.get_rentabilidad_status.texto }}
+        </span>
+        {% endif %}
+    </td>
+
+    <td class="text-center pe-4" style="background: rgba(75, 73, 172, 0.02);">
+        {% if not item.variantes.all %}
+        <div class="d-flex align-items-center justify-content-center gap-2">
+            <span class="fw-bold text-dark" style="font-size: 0.95rem; min-width: 24px;">
+                {{ item.inventario_real }}
+            </span>
+            <button onclick="abrirTrinidad('{{ item.sku }}', '{{ item.producto }}', {{ item.inventario_real }})"
+                    class="btn btn-sm border-0 bg-transparent p-0"
+                    title="Registrar movimiento">
+                <i class="fa-solid fa-circle-plus fs-4" style="color: var(--skydash-blue); opacity: 0.8;"></i>
+            </button>
+        </div>
+        {% endif %}
+    </td>
+</tr>
+
+{% for variante in item.variantes.all %}
+<tr id="variante-{{ item.sku }}-{{ forloop.counter }}" 
+    class="variante-row-{{ item.sku }}"
+    style="display:none; background: rgba(75, 73, 172, 0.03);">
+    <td class="ps-5">
+        <div class="d-flex align-items-center gap-2">
+            <div class="img-thumbnail-vts d-flex align-items-center justify-content-center bg-light text-muted" style="width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid rgba(0,0,0,0.08); flex-shrink:0;">
+                {% if variante.imagen and variante.imagen.url %}
+                    <img src="{{ variante.imagen.url }}" style="width:32px; height:32px; object-fit:cover; border-radius:4px;">
+                {% else %}
+                    <i class="fa-solid fa-tag opacity-25" style="font-size:0.7rem;"></i>
+                {% endif %}
+            </div>
+            <span class="sku-badge" style="font-size:0.7rem; opacity:0.8;">{{ variante.sku_variante }}</span>
+        </div>
+    </td>
+    <td>
+        <div class="text-dark" style="font-size:0.85rem;">{{ variante.nombre_variante }}</div>
+        <small class="text-muted" style="font-size:0.7rem;">${{ variante.precio_venta|floatformat:0 }}</small>
+    </td>
+    <td class="text-center">
+        {% with status=variante.get_stock_status %}
+        <div class="progress mx-auto"
+            style="height: 8px; width: 65px; background-color: rgba(0,0,0,0.05); border-radius: 20px;">
+            <div class="progress-bar rounded-pill shadow-none"
+                style="width: 100%; background-color: {{ status.color }};">
+            </div>
+        </div>
+        {% endwith %}
+    </td>
+    <td class="text-center">
+        <span style="color: {{ variante.get_rentabilidad_status.color }}; font-size: 0.75rem;">
+            {{ variante.get_rentabilidad_status.simbolo }} {{ variante.get_rentabilidad_status.texto }}
+        </span>
+    </td>
+    <td class="text-center pe-4">
+        <div class="d-flex align-items-center justify-content-center gap-2">
+            <span class="fw-bold text-dark" style="font-size: 0.9rem; min-width: 24px;">
+                {{ variante.inventario_real }}
+            </span>
+            <button onclick="abrirTrinidad('{{ variante.sku_variante }}', '{{ variante.nombre_variante }}', {{ variante.inventario_real }})"
+                    class="btn btn-sm border-0 bg-transparent p-0">
+                <i class="fa-solid fa-circle-plus" style="color: var(--skydash-blue); opacity: 0.8;"></i>
+            </button>
+        </div>
+    </td>
+</tr>
+{% endfor %}
+
+{% endfor %}

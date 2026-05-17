@@ -1,0 +1,41 @@
+<!-- dashboard/templates/dashboard/importar_personal.html -->
+{% extends request.META.HTTP_HX_REQUEST|yesno:"dashboard/partials/vacio.html,dashboard/base.html" %}
+
+{% block header_title %}Carga de Personal{% endblock %}
+
+{% block content %}
+<div class="row w-100">
+    <div class="col-12">
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+            <div class="card-header bg-dark text-white p-4">
+                <h4 class="mb-0"><i class="fa-solid fa-file-import me-2"></i>Ingreso Masivo de Colaboradores</h4>
+                <small class="text-secondary">Secuencia: rut, ap_p, ap_m, nombres, cargo, sueldo, inicio, termino, afp, salud, adicional</small>
+            </div>
+            <div class="card-body p-5 text-center">
+                <form id="form-dikbig" 
+                      hx-post="{% url 'importar_personal' %}" 
+                      hx-encoding="multipart/form-data" 
+                      hx-target="#resultado-carga"
+                      hx-indicator="#spinner">
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <label for="archivo_csv" class="form-label fw-bold">Selecciona el Manifiesto (.csv)</label>
+                        <input class="form-control form-control-lg" type="file" name="archivo_csv" id="archivo_csv" accept=".csv" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg px-5 rounded-pill shadow">
+                        <i class="fa-solid fa-upload me-2"></i>Iniciar Carga Atómica
+                    </button>
+                </form>
+
+                <div id="spinner" class="htmx-indicator mt-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Lannu verificando integridad del hardware...</p>
+                </div>
+
+                <div id="resultado-carga" class="mt-4">
+                    </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends 'dashboard/base.html' %} {% block content %}
+<div class="container mt-4">
+    <div class="card shadow-lg border-0">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 text-gray-800">Liquidación de Sueldo</h1>
+                <button class="btn btn-primary" onclick="window.print()">
+                    <i class="fas fa-print"></i> Imprimir Física
+                </button>
+            </div>
+
+            {% include 'dashboard/partials/_partida_doble_corazon.html' %}
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

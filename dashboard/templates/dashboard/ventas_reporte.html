@@ -1,0 +1,61 @@
+<!-- ============================================================ -->
+<!-- ARCHIVO: dashboard/templates/dashboard/ventas_reporte.html  -->
+<!-- ============================================================ -->
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block header_title %}Reportes de Ventas{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <div class="rounded-3 p-3" style="background:#0d6efd20;">
+      <i class="fa-solid fa-chart-bar fa-lg text-primary"></i>
+    </div>
+    <div>
+      <h4 class="mb-0 fw-bold">Odd · Reportes de Ventas</h4>
+      <small class="text-muted">Historial de importaciones procesadas</small>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-transparent border-bottom fw-semibold small">
+      <i class="fa-solid fa-clock-rotate-left me-2"></i>Últimas 50 importaciones
+    </div>
+    <div class="card-body p-0">
+      {% if logs %}
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th>Fecha</th>
+              <th>Operador</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in logs %}
+            <tr>
+              <td class="text-muted small font-monospace">{{ log.fecha_exacta|date:"d/m/Y H:i" }}</td>
+              <td>{{ log.operador.username }}</td>
+              <td class="small">{{ log.producto }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="fa-solid fa-inbox fa-2x mb-2"></i>
+        <p class="mb-0">No hay importaciones registradas aún.</p>
+        <a href="{% url 'ventas_importar' %}" class="btn btn-sm btn-outline-primary mt-3">
+          <i class="fa-solid fa-file-arrow-up me-1"></i>Importar CSV
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+<!-- /dashboard/templates/dashboard/mortaja_modal.html -->
+<div id="modal-container" class="modal fade show d-block" style="background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.2); border-radius: 15px;">
+            
+            <div class="modal-header border-0 text-white">
+                <h5 class="modal-title"><i class="fas fa-skull-crossbones me-2 text-danger"></i> ANÁLISIS DE MORTAJA: {{ colaborador.nombres }}</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="document.getElementById('modal-container').remove()"></button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="p-3 rounded" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);">
+                            <h6 class="text-info text-uppercase small">Cómputo de Antigüedad</h6>
+                            <p class="h4 text-white">{{ anios }} Años, {{ meses }} Meses</p>
+                            <hr class="text-white-50">
+                            <h6 class="text-info text-uppercase small">Última Remuneración</h6>
+                            <p class="h4 text-white">${{ sueldo_base|floatformat:0 }}</p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card bg-dark text-warning border-0 mb-3" style="background: rgba(0,0,0,0.4) !important;">
+                            <div class="card-body">
+                                <h6 class="text-uppercase small">Indemnización Años</h6>
+                                <p class="h3">${{ provision_anios|floatformat:0 }}</p>
+                            </div>
+                        </div>
+                        <div class="card bg-secondary text-white border-0" style="background: rgba(255,255,255,0.1) !important;">
+                            <div class="card-body">
+                                <h6 class="text-uppercase small">Vacaciones Proporcionales</h6>
+                                <p class="h3">${{ vacaciones_monto|floatformat:0 }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-4 rounded text-center shadow" style="background: rgba(220, 53, 69, 0.8); border: 2px solid #ff4d4d;">
+                    <h4 class="mb-0 text-white">TOTAL RESERVA REQUERIDA</h4>
+                    <p class="display-5 fw-bold mb-0 text-white">${{ total_reserva|floatformat:0 }}</p>
+                </div>
+            </div>
+
+            <div class="modal-footer border-0">
+                <button class="btn btn-outline-light" onclick="document.getElementById('modal-container').remove()">Cerrar Bóveda</button>
+                <button class="btn btn-danger shadow" onclick="window.print()">
+                    <i class="fas fa-file-pdf"></i> Exportar Sentencia
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

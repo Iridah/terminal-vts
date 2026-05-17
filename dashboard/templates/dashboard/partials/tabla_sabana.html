@@ -1,0 +1,51 @@
+<!-- /dashboard/templates/dashboard/partials/tabla_sabana.html -->
+<div id="oracle-status" class="alert alert-info d-flex justify-content-between align-items-center">
+    <span>
+        <i class="fas fa-microchip"></i> 
+        Estado del Oráculo: <strong>UF: ${{ uf_actual }} | UTM: ${{ utm_actual }}</strong>
+    </span>
+    <button hx-post="/dashboard/actualizar-indicadores/" 
+            hx-target="#oracle-status" 
+            hx-swap="outerHTML"
+            class="btn btn-sm btn-dark">
+        <i class="fas fa-sync-alt"></i> Sincronizar Cierre de Mes
+    </button>
+    <button class="btn btn-sm btn-outline-danger" 
+        hx-get="{% url 'ver_mortaja' fila.RUT %}" 
+        hx-target="body" 
+        hx-swap="beforeend">
+    <i class="fas fa-skull"></i>
+    </button>
+</div>
+
+<div class="table-responsive mt-4">
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Colaborador</th>
+                <th>Sueldo Base</th>
+                <th>Haberes</th>
+                <th>Descuentos</th>
+                <th class="text-success">Líquido a Pagar</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for fila in sabana %}
+            <tr>
+                <td><strong>{{ fila.Nombres }} {{ fila.Apellido_Paterno }}</strong><br>
+                    <small class="text-muted">{{ fila.RUT }}</small></td>
+                <td>${{ fila.Sueldo_Base }}</td>
+                <td><span class="badge bg-info">${{ fila.Total_Haberes_Imponibles }}</span></td>
+                <td><span class="badge bg-danger">${{ fila.Total_Descuentos }}</span></td>
+                <td class="fw-bold">${{ fila.Liquido_a_pagar }}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" hx-get="/personal/ver-detalle/{{ fila.RUT }}">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

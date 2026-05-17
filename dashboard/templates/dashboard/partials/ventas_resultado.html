@@ -1,0 +1,92 @@
+<!-- ============================================================ -->
+<!-- ARCHIVO: dashboard/templates/dashboard/partials/ventas_resultado.html -->
+<!-- ============================================================ -->
+
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">
+      <i class="fa-solid fa-circle-check me-2 text-success"></i>Proceso completado
+    </span>
+    <span class="badge bg-primary">Odd ✓</span>
+  </div>
+  <div class="card-body">
+
+<!-- Métricas -->
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-md-3">
+        <div class="rounded-3 p-3 text-center" style="background:#d1fae520;">
+          <div class="fw-bold fs-4 text-success">{{ resultado.procesadas }}</div>
+          <div class="small text-muted">Procesadas</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="rounded-3 p-3 text-center" style="background:#fef3c720;">
+          <div class="fw-bold fs-4 text-warning">{{ resultado.sin_match|length }}</div>
+          <div class="small text-muted">Sin match</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="rounded-3 p-3 text-center" style="background:#dbeafe20;">
+          <div class="fw-bold fs-4 text-info">{{ resultado.duplicadas }}</div>
+          <div class="small text-muted">Duplicadas</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="rounded-3 p-3 text-center" style="background:#fee2e220;">
+          <div class="fw-bold fs-4 text-danger">{{ resultado.errores|length }}</div>
+          <div class="small text-muted">Errores</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="rounded-3 p-3 text-center" style="background:#ede9fe20;">
+          <div class="fw-bold fs-4 text-purple">${{ resultado.total_bruto|floatformat:0 }}</div>
+          <div class="small text-muted">Total bruto</div>
+        </div>
+      </div>
+      <!-- Aporte Hogar AQUÍ adentro -->
+      <div class="col-6 col-md-3">
+        <div class="rounded-3 p-3 text-center" style="background:#f0fdf420;">
+          <div class="fw-bold fs-4" style="color:#16a34a;">{{ resultado.ap_hogar }}</div>
+          <div class="small text-muted">Aporte Hogar</div>
+          <div class="small text-muted">${{ resultado.total_ap_hogar|floatformat:0 }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sin match -->
+    {% if resultado.sin_match %}
+    <div class="mb-3">
+      <p class="fw-semibold small mb-1 text-warning">
+        <i class="fa-solid fa-circle-question me-1"></i>Sin match en VTS:
+      </p>
+      <ul class="list-unstyled small mb-0">
+        {% for item in resultado.sin_match %}
+        <li class="text-muted py-1 border-bottom">
+          <code>{{ item.id_tx }}</code> · {{ item.descripcion }} <span class="badge bg-secondary">x{{ item.cantidad }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <!-- Errores -->
+    {% if resultado.errores %}
+    <div>
+      <p class="fw-semibold small mb-1 text-danger">
+        <i class="fa-solid fa-circle-xmark me-1"></i>Errores:
+      </p>
+      <ul class="list-unstyled small mb-0">
+        {% for err in resultado.errores %}
+        <li class="text-muted py-1 border-bottom">
+          <code>{{ err.sku }}</code> · {{ err.descripcion }} → <span class="text-danger">{{ err.motivo }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+  </div>
+  <div class="card-footer bg-transparent small text-muted">
+    <i class="fa-solid fa-clock me-1"></i>Proceso registrado en Logs Sistema.
+  </div>
+</div>

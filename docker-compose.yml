@@ -1,0 +1,14 @@
+#docker-compose.yml
+services:
+  martillo-vil:
+    build: .
+    container_name: vts_martillo_vil
+    restart: always
+    volumes:
+      - .:/app:Z  # <--- La "Z" mayúscula re-etiqueta el contenido para SELinux
+    ports:
+      - "9000:8000"
+    environment:
+      - DJANGO_DEBUG=True
+    stdin_open: true
+    tty: true
