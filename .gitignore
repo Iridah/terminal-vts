@@ -1,32 +1,17 @@
-# Python
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
 venv/
-
-# Django
+.env
 *.sqlite3
 staticfiles/
 media/
-db.sqlite3
-
-# Entorno
-.env
-*.env
-
-# Backups y logs
 backups/*.json
-backups/*.pdf
 backups/cron.log
+backups/*.pdf
 server_log.txt
 *.bak
 *.db
-*.db.bak
-
-# Exports temporales
-*.csv
 vts_export.csv
-
-# VSCode
-.vscode/
+*.csv
+main.js.moo
+htmx.min.js
