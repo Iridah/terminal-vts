@@ -12,13 +12,13 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
-body {
+/* body {
     background-color: var(--bg-body);
     font-family: 'Nunito', sans-serif;
     margin: 0;
     display: flex;
     min-height: 100vh;
-}
+} */
 
 /* --- 1. SIDEBAR MAESTRO --- */
 .sidebar {

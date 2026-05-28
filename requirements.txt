@@ -4,11 +4,14 @@ b2sdk==2.10.4
 certifi==2026.1.4
 charset-normalizer==3.4.4
 Django==6.0.1
+django-unfold==0.94.0
 et_xmlfile==2.0.0
+gunicorn==25.3.0
 idna==3.11
 logfury==1.0.1
 numpy==2.4.1
 openpyxl==3.1.5
+packaging==26.0
 pandas==3.0.0
 pillow==12.1.0
 python-dateutil==2.9.0.post0

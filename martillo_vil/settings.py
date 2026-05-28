@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/dev/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from django.templatetags.static import static
+from django.urls import reverse_lazy
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -42,6 +44,8 @@ else:
 # Application definition
 
 INSTALLED_APPS = [
+    "unfold",
+    "unfold.contrib.filters",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -81,6 +85,18 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'martillo_vil.wsgi.application'
 
+UNFOLD = {
+    "SITE_TITLE": "VTS - Martillo Vil",
+    "SITE_HEADER": "Panel de Forja",
+    "SITE_URL": "/",
+    "SITE_ICON": None,
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "THEME": "dark",
+        "STYLES": [
+        lambda request: static("dashboard/css/admin_custom.css"),
+    ],
+}
 
 # Database
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
@@ -141,7 +157,8 @@ STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 ]
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+#STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

@@ -83,6 +83,8 @@ class AuditoriaAdmin(admin.ModelAdmin):
     search_fields = ('sku', 'codigo_barras', 'producto')
     list_per_page = 50
     readonly_fields = ('costo_neto_calculado', 'iva_calculado')
+    compressed_fields = True
+    warn_unsaved_changes = True
 
  
     # ── Fieldsets: Sección y Estado al frente ────────────────────
@@ -124,7 +126,7 @@ class AuditoriaAdmin(admin.ModelAdmin):
         return form
  
     class Media:
-        css = {'all': ('dashboard/css/style.css', 'dashboard/css/admin_custom.css')}
+        css = {'all': ('dashboard/css/admin_custom.css',)}
         js  = ('dashboard/js/admin_calculadora.js',)
  
     def save_model(self, request, obj, form, change):
