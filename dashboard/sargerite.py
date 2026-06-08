@@ -6,7 +6,7 @@ from functools import wraps
 from django.http import JsonResponse
 from django.conf import settings
 
-TOKEN_PATH = "/mnt/vts_key/vts_root.key"
+TOKEN_PATH = "/mnt/VTSCORE/vts_root.key"
 
 def is_root_key_present():
     """Verifica el hardware físico VTS_CORE"""

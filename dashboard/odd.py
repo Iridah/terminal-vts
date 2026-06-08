@@ -13,7 +13,8 @@ from .wixelandr import parse_monto
  
 def _norm(texto: str) -> str:
     """Normaliza texto: minúsculas y espacios múltiples colapsados."""
-    texto = texto.replace('\u2019', "'").replace('\u2018', "'")  # ← agregar esto
+    for ch in ('\u2019', '\u2018', '\u02bc', '\uff07', '\u02b9', '\u00b4'):
+        texto = texto.replace(ch, "'")
     return ' '.join(
         texto.strip().lower()
              .replace("'", "")
