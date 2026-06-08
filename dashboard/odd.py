@@ -2,6 +2,7 @@
 # Odd — Orquestador de Ventas VTS
 # Responsabilidades: mapeo SumUp↔VTS, descuento stock, reportes
 # v4 — detección automática Aporte Hogar (descuento 40%)
+import unicodedata
 from datetime import datetime
 from django.db import transaction
 from .models import AuditoriaVTS, VarianteVTS, RegistroLogs, VentaRegistrada, HistorialVentas
@@ -13,7 +14,8 @@ from .wixelandr import parse_monto
  
 def _norm(texto: str) -> str:
     """Normaliza texto: minúsculas y espacios múltiples colapsados."""
-    for ch in ('\u2019', '\u2018', '\u02bc', '\uff07', '\u02b9', '\u00b4'):
+    texto = unicodedata.normalize('NFKC', texto)
+    for ch in ('\u2019', '\u2018', '\u02bc', '\u02b9', '\u00b4'):
         texto = texto.replace(ch, "'")
     return ' '.join(
         texto.strip().lower()

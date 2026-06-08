@@ -43,10 +43,16 @@ def activar_giga_slave():
         subprocess.run(["systemctl", "stop", "vts"], check=True)
     except subprocess.CalledProcessError as e:
         alertar_a_lannu(f"⚠️ FALLO al detener vts: {e} — continuando protocolo")
-    subprocess.run(["/mnt/storage/proyectos/backup_cron.sh", "--emergency"])
-    subprocess.run(["shred", "-vfz", "-n", "3",
-                    "/mnt/storage/proyectos/VTS/db.sqlite3"])
-    alertar_a_lannu("✅ GIGA SLAVE COMPLETADO - VTS neutralizado")
+    try:
+        subprocess.run(["/mnt/storage/proyectos/backup_cron.sh", "--emergency"], check=True)
+    except subprocess.CalledProcessError as e:
+        alertar_a_lannu(f"⚠️ FALLO en backup de emergencia: {e} — continuando shred")
+    try:
+        subprocess.run(["shred", "-vfz", "-n", "3",
+                        "/mnt/storage/proyectos/VTS/db.sqlite3"], check=True)
+        alertar_a_lannu("✅ GIGA SLAVE COMPLETADO - VTS neutralizado")
+    except subprocess.CalledProcessError as e:
+        alertar_a_lannu(f"🔴 FALLO CRÍTICO en shred: {e} — DB puede estar intacta")
 
 def watchdog_loop():
     ausencia_detectada = None

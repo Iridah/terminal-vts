@@ -63,8 +63,8 @@ Split across four files, all re-exported from `models/__init__.py`:
 
 ### Security Layer
 
-- **`sargerite.py`**: `@sargerite_shield(permiso_requerido=...)` decorator for API endpoints. Validates UUID token (injected into session at login via signal) against `PerfilVTS`. In production, also requires a hardware key file at `/mnt/vts_key/vts_root.key`. Sends Telegram alerts on violations via `alertar_a_lannu()`.
-- **`martillo_vil/pollofrito.py`**: Dead man's switch — if the hardware key at `/mnt/VTSCORE/vts_root.key` is absent for 30 minutes, it stops the service and shreds `db.sqlite3`. Uses env vars `GIGA_SLAVE_ABORT` and `GIGA_SLAVE_OVERRIDE` for emergency abort.
+- **`sargerite.py`**: `@sargerite_shield(permiso_requerido=...)` decorator for API endpoints. Validates UUID token (injected into session at login via signal) against `PerfilVTS`. In production, also requires a hardware key file at `/mnt/VTSCORE/vts_root.key`. Sends Telegram alerts on violations via `alertar_a_lannu()`.
+- **`martillo_vil/pollofrito.py`**: Dead man's switch — if the hardware key at `/mnt/VTSCORE/vts_root.key` is absent for 30 minutes, stops the service and shreds `db.sqlite3`. Uses env vars `GIGA_SLAVE_ABORT` and `GIGA_SLAVE_OVERRIDE` for emergency abort. Grace period: 1800s. Restore threshold: 300s continuous presence before resetting watchdog.
 
 ### Key Financial Logic
 
@@ -94,3 +94,25 @@ Required: `SECRET_KEY`, `SARGERITE_EXPECTED_HASH`, `TELEGRAM_BOT_TOKEN`, `TELEGR
 ### Legacy CLI (`CLI/`)
 
 Pre-web Python scripts kept for reference and for CSV generation (audit files like `AUDITORIA_VTS_*.csv` that `importar_csv` reads). Not actively developed.
+
+## Proveedores
+
+### Con factura
+| Proveedor                              | Alias                              |
+|----------------------------------------|------------------------------------|
+| Importadora y Comercializadora de Todo | Mr. Ahorro / Einstein              |
+| Mayorista Noe Riojas SpA               | Mayorista Noe / Dorsal             |
+| Walmart Chile Mayorista Ltda           | Central Mayorista                  |
+| Comercial Martina Chile Ltda           | El chino de las bolsas / Mall Lila |
+| Mercado Circular SpA                   | Bodega Virginia                    |
+| S&N SpA                                | La Económica / Quinta Normal       |
+
+### S&N SpA — La Económica
+- **RUT:** 78.346.184-6
+- **Instagram:** @laeconomica.distribuidora
+- **Dirección:** Martínez de Rosas 3073, Santiago (Quinta Normal)
+- **Activo desde:** 2026-05-25
+- **Pago:** tarjeta (Getnet / MercadoPago), transferencia, efectivo
+- **Factura:** sí
+- **Despacho:** sobre $200.000
+- **Catálogo:** en construcción
