@@ -29,6 +29,7 @@ class AuditoriaVTS(models.Model):
     variante        = models.CharField(max_length=50, blank=True, null=True, verbose_name="Variante/Color")
     imagen          = models.ImageField(upload_to='productos/', blank=True, null=True, verbose_name="Foto del Producto")
     estado          = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='activo', verbose_name="Estado")
+    sumup_item_id   = models.CharField(max_length=100, blank=True, default='', verbose_name="SumUp Item ID")
 
     # --- Campos de Inventario ---
     stock_sistema       = models.IntegerField(default=0)

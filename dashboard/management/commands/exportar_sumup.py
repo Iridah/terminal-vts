@@ -1,9 +1,11 @@
 # dashboard/management/commands/exportar_sumup.py
 # Contiene toda la mecanica para la generacion del CSV que se cargara posteriormente a Sumup
 import csv
-import io
+import os
+
 from django.core.management.base import BaseCommand
 from dashboard.models import AuditoriaVTS, VarianteVTS
+
 
 COLORES_SECCION = {
     'Abarrotes':        'Yellow',
@@ -42,6 +44,11 @@ COLUMNAS = [
 ]
 
 
+def imagen_valida(url):
+    """Solo acepta URLs vivas de SumUp. Filtra las de images-admin (CDN interno, 404)."""
+    return isinstance(url, str) and url.startswith('https://images.sumup.com/')
+
+
 class Command(BaseCommand):
     help = 'Exporta catálogo VTS en formato CSV listo para importar en SumUp'
 
@@ -77,7 +84,7 @@ class Command(BaseCommand):
                     item_name  = fila.get('Item name', '').strip()
                     sku        = fila.get('SKU', '').strip()
 
-                    if item_name:
+                    if item_name and item_id:
                         base_por_itemid[item_id] = fila
                     elif not item_name and sku and variant_id:
                         base_por_sku_variante[sku] = {
@@ -98,43 +105,41 @@ class Command(BaseCommand):
             estado__in=['activo', 'criocongelado']
         ).prefetch_related('variantes').order_by('seccion', 'producto'):
 
-            color    = COLORES_SECCION.get(prod.seccion, '')
-            variantes = list(prod.variantes.filter(estado__in=['activo', 'criocongelado']))
+            color           = COLORES_SECCION.get(prod.seccion, '')
+            variantes       = list(prod.variantes.filter(estado__in=['activo', 'criocongelado']))
             tiene_variantes = len(variantes) > 0
 
-            # Buscar fila base por nombre (para preservar item_id e imágenes)
-            fila_base = None
-            for item_id, fb in base_por_itemid.items():
-                if fb.get('Item name', '').strip() == prod.producto:
-                    fila_base = fb
-                    break
+            # Lookup por sumup_item_id (robusto, no depende del nombre)
+            item_id_preservado = prod.sumup_item_id or ''
+            fila_base          = base_por_itemid.get(item_id_preservado) if item_id_preservado else None
 
-            item_id_preservado = fila_base.get('Item id (Do not change)', '') if fila_base else ''
-
-            # Imágenes del CSV base
-            imagenes = [fila_base.get(f'Image {i}', '') for i in range(1, 8)] if fila_base else [''] * 7
+            # Imágenes: solo URLs vivas, filtra CDN interno con 404
+            imagenes = [
+                fila_base.get(f'Image {i}', '') if imagen_valida(fila_base.get(f'Image {i}', '')) else ''
+                for i in range(1, 8)
+            ] if fila_base else [''] * 7
 
             # ── Fila madre ────────────────────────────────────────────────
             fila_madre = {col: '' for col in COLUMNAS}
             fila_madre.update({
-                'Item name':                        prod.producto,
-                'Price':                            '' if tiene_variantes else str(int(prod.precio_venta)),
-                'Cost price':                       '',  # nunca exportamos
-                'Variable price? (Yes/No)':         'No',
-                'Tax rate (%)':                     '19.00',
-                'On sale in Online Store?':         'No',
+                'Item name':                                    prod.producto,
+                'Price':                                        '' if tiene_variantes else str(int(prod.precio_venta)),
+                'Cost price':                                   '',
+                'Variable price? (Yes/No)':                     'No',
+                'Tax rate (%)':                                 '19.00',
+                'On sale in Online Store?':                     'No',
                 'Set up different prices and VAT for takeaway': 'No',
-                'Unit':                             'each.each',
-                'Track inventory? (Yes/No)':        'Yes' if not tiene_variantes else 'No',
-                'Quantity':                         str(prod.inventario_real) if not tiene_variantes else '',
-                'Low stock threshold':              '',
-                'SKU':                              prod.sku if not tiene_variantes else '',
-                'Category':                         prod.seccion,
-                'Display item at Checkout? (Yes/No)': 'Yes',
-                'Display colour in POS checkout':   color,
-                'Display item in Online Store? (Yes/No)': 'Yes',
-                'SEO title (Online Store only)':    prod.producto,
-                'Item id (Do not change)':          item_id_preservado,
+                'Unit':                                         'each.each',
+                'Track inventory? (Yes/No)':                    'Yes' if not tiene_variantes else 'No',
+                'Quantity':                                     str(prod.inventario_real) if not tiene_variantes else '',
+                'Low stock threshold':                          '',
+                'SKU':                                          prod.sku if not tiene_variantes else '',
+                'Category':                                     prod.seccion,
+                'Display item at Checkout? (Yes/No)':           'Yes',
+                'Display colour in POS checkout':               color,
+                'Display item in Online Store? (Yes/No)':       'Yes',
+                'SEO title (Online Store only)':                prod.producto,
+                'Item id (Do not change)':                      item_id_preservado,
             })
             for i, img in enumerate(imagenes, 1):
                 fila_madre[f'Image {i}'] = img
@@ -143,9 +148,13 @@ class Command(BaseCommand):
 
             # ── Filas variantes ───────────────────────────────────────────
             for var in variantes:
-                datos_base = base_por_sku_variante.get(var.sku_variante, {})
-                variant_id_preservado = datos_base.get('variant_id', '')
-                img_var = [datos_base.get(f'Image {i}', '') for i in range(1, 8)]
+                datos_base            = base_por_sku_variante.get(var.sku_variante, {})
+                # En las filas variantes, solo preservar variant_id si el producto madre tiene item_id
+                variant_id_preservado = datos_base.get('variant_id', '') if item_id_preservado else ''
+                img_var = [
+                    datos_base.get(f'Image {i}', '') if imagen_valida(datos_base.get(f'Image {i}', '')) else ''
+                    for i in range(1, 8)
+                ]
 
                 fila_var = {col: '' for col in COLUMNAS}
                 fila_var.update({
