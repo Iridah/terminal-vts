@@ -1,15 +1,22 @@
 # dashboard/management/commands/importar_sumup.py
 # Comando: python manage.py importar_sumup --csv /ruta/al/archivo.csv
 # Hace backup, merge inteligente, reporta inconsistencias
- 
+# 
+# CAMBIO (integración sumup_item_id):
+#   Ahora también puebla AuditoriaVTS.sumup_item_id desde el CSV, tanto al
+#   crear como al actualizar productos. NUNCA pisa un ID ya asignado — si
+#   prod.sumup_item_id ya tiene valor, se respeta (evita romper asociaciones
+#   manuales como las de Coca-Cola/Scott). Esto reemplaza la necesidad del
+#   comando aparte importar_sumup_ids.
+
 import csv
 import json
 from datetime import datetime
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from dashboard.wixelandr import parse_monto
- 
- 
+
+
 SECCION_MAP = {
     'Limpieza':         'Limpieza',
     'Higiene':          'Cuidado Personal',
@@ -24,24 +31,24 @@ SECCION_MAP = {
     'Colaciones':           'Colaciones',
 }
 TALLAS_VALIDAS = {'RN', 'P', 'M', 'G', 'XG', 'XXG', 'XXXG'}
- 
+
 class Command(BaseCommand):
     help = 'Importa/actualiza productos VTS desde CSV de inventario SumUp'
- 
+
     def add_arguments(self, parser):
         parser.add_argument('--csv',     required=True, help='Ruta al CSV de SumUp')
         parser.add_argument('--dry-run', action='store_true', help='Solo simula, no escribe en BD')
- 
+
     def handle(self, *args, **options):
         from dashboard.models import AuditoriaVTS, VarianteVTS
- 
+
         csv_path = options['csv']
         dry_run  = options['dry_run']
- 
+
         self.stdout.write(self.style.WARNING(
             f"\n{'[DRY RUN] ' if dry_run else ''}Iniciando importación desde {csv_path}\n"
         ))
- 
+
         # ── 1. BACKUP ────────────────────────────────────────────
         backup_path = f"/tmp/vts_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         backup = []
@@ -50,6 +57,7 @@ class Command(BaseCommand):
                 'sku': p.sku, 'producto': p.producto, 'seccion': p.seccion,
                 'precio_costo': str(p.precio_costo), 'precio_venta': str(p.precio_venta),
                 'inventario_real': p.inventario_real, 'estado': p.estado,
+                'sumup_item_id': p.sumup_item_id,
             })
         for v in VarianteVTS.objects.all():
             backup.append({
@@ -61,11 +69,11 @@ class Command(BaseCommand):
         with open(backup_path, 'w', encoding='utf-8') as f:
             json.dump(backup, f, ensure_ascii=False, indent=2)
         self.stdout.write(self.style.SUCCESS(f"✓ Backup guardado en {backup_path}"))
- 
+
         # ── 2. LEER CSV ──────────────────────────────────────────
         productos_por_itemid = {}
         variantes_data = []
- 
+
         with open(csv_path, encoding='utf-8-sig') as f:
             reader      = csv.DictReader(f)
             item_actual = None
@@ -110,29 +118,54 @@ class Command(BaseCommand):
         stats = {
             'prod_creados':    0, 'prod_actualizados': 0, 'prod_sin_sku': 0,
             'var_creadas':     0, 'var_actualizadas':  0, 'var_sin_sku':  0,
+            'sumup_id_poblados': 0,
             'inconsistencias': [],
         }
 
         # Productos madre
         for item_id, datos in productos_por_itemid.items():
             if not datos['sku']:
-                stats['prod_sin_sku'] += 1
-                stats['inconsistencias'].append(
-                    f"Sin SKU (producto): {datos['nombre']} | item_id: {item_id}"
-                )
+                # Productos con variantes: la fila madre nunca trae SKU en el
+                # export de SumUp (el SKU vive en las filas hijas). Intentamos
+                # matchear por nombre exacto SOLO para poblar sumup_item_id —
+                # no tocamos nombre/sección/precio para minimizar riesgo.
+                prod = AuditoriaVTS.objects.filter(producto=datos['nombre']).first()
+                if prod:
+                    if not prod.sumup_item_id and item_id:
+                        stats['sumup_id_poblados'] += 1
+                        if not dry_run:
+                            prod.sumup_item_id = item_id
+                            prod.save(update_fields=['sumup_item_id'])
+                else:
+                    stats['prod_sin_sku'] += 1
+                    stats['inconsistencias'].append(
+                        f"Sin SKU y sin match por nombre: {datos['nombre']} | item_id: {item_id}"
+                    )
                 continue
 
             try:
                 prod = AuditoriaVTS.objects.get(sku=datos['sku'])
                 stats['prod_actualizados'] += 1
+
+                # NUNCA pisa un sumup_item_id ya asignado — solo puebla si está vacío.
+                id_a_setear = None
+                if not prod.sumup_item_id and item_id:
+                    id_a_setear = item_id
+                    stats['sumup_id_poblados'] += 1
+
                 if not dry_run:
                     prod.producto = datos['nombre']
                     prod.seccion  = datos['seccion']
                     if parse_monto(prod.precio_venta) == 0 and datos['precio'] > 0:
                         prod.precio_venta = datos['precio']
+                    if id_a_setear:
+                        prod.sumup_item_id = id_a_setear
                     prod.save()
+
             except AuditoriaVTS.DoesNotExist:
                 stats['prod_creados'] += 1
+                if item_id:
+                    stats['sumup_id_poblados'] += 1
                 if not dry_run:
                     AuditoriaVTS.objects.create(
                         sku             = datos['sku'],
@@ -141,9 +174,11 @@ class Command(BaseCommand):
                         precio_venta    = datos['precio'],
                         inventario_real = 0,
                         stock_sistema   = 0,
+                        sumup_item_id   = item_id or '',
                     )
 
-        # Variantes
+        # Variantes (sin cambios — el matching de variant_id sigue viviendo
+        # en exportar_sumup.py vía SKU directo, no requiere campo en modelo)
         for datos in variantes_data:
             if not datos['sku']:
                 stats['var_sin_sku'] += 1
@@ -151,7 +186,6 @@ class Command(BaseCommand):
                     f"Sin SKU (variante): {datos['nombre']} / {datos['variacion']}"
                 )
                 continue
-
 
             partes = datos['sku'].split('-')
             if len(partes) >= 4:
@@ -218,6 +252,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  Productos creados:      {stats['prod_creados']}")
         self.stdout.write(f"  Productos actualizados: {stats['prod_actualizados']}")
         self.stdout.write(f"  Productos sin SKU:      {stats['prod_sin_sku']}")
+        self.stdout.write(f"  sumup_item_id poblados: {stats['sumup_id_poblados']}")
         self.stdout.write(f"  Variantes creadas:      {stats['var_creadas']}")
         self.stdout.write(f"  Variantes actualizadas: {stats['var_actualizadas']}")
         self.stdout.write(f"  Variantes sin SKU:      {stats['var_sin_sku']}")
