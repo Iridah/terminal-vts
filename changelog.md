@@ -1,5 +1,21 @@
 # 📜 Registro de Cambios (Changelog)
-# 🛠️ Martillo Vil - Versión 2.6 (Dj6) Estado: Estable 🟢
+# 🔒 Martillo Vil - Parche de Seguridad (Filtración .env en GitHub) Estado: Cerrado 🟢
+
+### 📋 Qué pasó
+- El `.env` completo quedó comiteado en el historial de `terminal-vts` (commit del 17-may-2026) — repo **público** en GitHub. `SECRET_KEY`, token de Telegram (lannu-bot), credenciales B2 (Backblaze) y `SARGERITE_EXPECTED_HASH` quedaron expuestos. El `.gitignore` agregado después nunca limpió el historial ya empujado — los 3 secretos seguían vigentes 3 meses después.
+- Agravante: ERPVS compartía bucket y key de Backblaze B2 con VTS — la key filtrada daba acceso a los backups de ambos sistemas.
+
+### 🔧 Remediación
+- `SECRET_KEY` rotada (recarga en caliente, sin downtime).
+- Historial de `terminal-vts` reescrito con `git filter-repo` (purga del `.env` de los 9 commits) + force-push a Gitea y GitHub.
+- Token de Telegram y B2 App Key revocados y regenerados.
+- **B2 separado entre VTS y ERPVS** — cada uno con bucket y key propios, verificado con autenticación real.
+- `.env` de todos los proyectos en el servidor: permisos cerrados a solo el dueño (antes eran legibles por cualquier usuario del sistema).
+- De paso: Dozzle (visor de logs sin auth, expuesto a toda la LAN) restringido a localhost; n8n/Postiz/bapho-chan purgados por estar sin configurar y sin uso real.
+
+### 🚀 Despliegue
+- **Fecha**: 2026-08-25
+- **Ambiente**: Producción (Thunderbluff)
 
 ### 📋 Cambios Principales
 - **Chasis UI**: Implementación de Sidebar expandible inteligente y diseño minimalista v2.6.
