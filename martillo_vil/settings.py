@@ -33,7 +33,7 @@ TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 # Reparación con "Plan B" por si el .env falla
 SECRET_KEY = os.getenv('SECRET_KEY')
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 allowed_hosts_raw = os.getenv('ALLOWED_HOSTS')
 if allowed_hosts_raw:
     ALLOWED_HOSTS = allowed_hosts_raw.split(',')
